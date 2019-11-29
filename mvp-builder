@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+readonly SELF=$(basename "${BASH_SOURCE[0]}")
+readonly OS=$(uname)
+readonly VERSION=0.0.1
+
+OPT_HELP=
+OPT_DEBUG=
+OPT_VERBOSE=
+
+OPT_ENGINE=git@github.com:themimixcompany/engine.git
+OPT_VIEWER=git@github.com:themimixcompany/mpv-shell.git
+OPT_ELECTRON=git@github.com:themimixcompany/mvp-electron.git
+OPT_STAGING_DIR="$PWD/.staging"
+OPT_RELEASES_DIR=
+
+error () {
+  if [[ "${OS}" == "Darwin" ]]; then
+    echo "error: ${@}" >&2
+  else
+    echo -e "\e[0;31m\e[1merror: \e[0;0m${@}" >&2
+  fi
+
+  exit 1
+}
+
+warn () {
+  if [[ "${OS}" == "Darwin" ]]; then
+    echo "warning: ${@}" >&2
+  else
+    echo -e "\e[0;33mwarning: \e[0;0m${@}" >&2
+  fi
+}
+
+debug () {
+  if [[ -n "${OPT_DEBUG}" ]]; then
+    echo '**'
+    echo \${@}: ${@}
+    echo \$OPT_HELP: "${OPT_HELP}"
+    echo \$OPT_DEBUG: "${OPT_DEBUG}"
+    echo \$OPT_VERBOSE: "${OPT_VERBOSE}"
+  fi
+}
+
+parse_arguments () {
+  debug parse_arguments "$@"
+
+  local opts=$(getopt -n "${SELF}" --options hdvs: --longoptions help,debug,verbose,staging-dir: -- "$@")
+
+  if [[ $? != 0 ]]; then error "failed to parsing arguments."; fi
+
+  eval set -- "${opts}"
+
+  while true; do
+    case "$1" in
+      (-h|--help) OPT_HELP=true; shift ;;
+      (-d|--debug) OPT_DEBUG=true; shift ;;
+      (-v|--verbose) OPT_VERBOSE=true; shift ;;
+      (-p|--provider) OPT_PROVIDER=$2; shift 2 ;;
+      (-s|--staging-dir) OPT_STAGING_DIR=$2; shift 2 ;;
+      (--) shift; break ;;
+      (*) break ;;
+    esac
+  done
+}
+
+process_arguments () {
+  debug process_arguments "$@"
+
+  if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
+    display_usage
+  else
+    return 0
+  fi
+}
+
+display_usage () {
+  debug display_usage "$@"
+
+  cat << EOF
+${SELF} [OPTIONS]... <COMMAND> [OPTIONS]...
+
+OPTIONS:
+  -h, --help                  Show this help
+
+COMMANDS:
+EOF
+  exit 0
+}
+
+ensure_base_directory () {
+  debug ensure_base_directory "$@"
+
+  if [[ ! -d "${BASE_DIR}" ]]; then
+    mkdir -p "${BASE_DIR}"
+  fi
+}
+
+ensure_directories () {
+  debug ensure_directories "$@"
+
+  mkdir -p "$OPT_STAGING_DIR"
+}
+
+fetch_dependencies () {
+  debug fetch_dependencies "$@"
+
+  #rm -rf "$OPT_STAGING_DIR"
+  mkdir -p "$OPT_STAGING_DIR"
+  cd "$OPT_STAGING_DIR"
+}
+
+
+# NOTE:
+# - fetch mvp-electron sources to ${OPT_STAGING_DIR}
+# - fetch mvp-shell sources to ${OPT_STAGING_DIR}/mvp-electron/app/viewer/
+# - fetch engine releases to ${OPT_STAGING_DIR}/mvp-electron/app/engine/
+# - 
+
+main () {
+  debug main "$@"
+
+  parse_arguments "$@"
+  process_arguments "$@"
+
+  ensure_directories
+  fetch_dependencies
+}
+
+main "$@"
