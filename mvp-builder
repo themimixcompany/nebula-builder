@@ -127,6 +127,7 @@ fetch_dependencies () {
 # - run npm commands
 #   + npm install
 # - build executables with electron-forge
+#   + use --arch flag
 
 main () {
   debug main "$@"

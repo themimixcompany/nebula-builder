@@ -2,13 +2,15 @@ FROM ubuntu:bionic
 
 # Labels
 LABEL maintainer="rom@mimix.io"
-LABEL version="0.0.1"
+LABEL version="0.0.2"
 LABEL description="Dockerfile for mvp-builder"
 
 # Packages
 RUN apt-get update -y
-RUN apt-get install -y curl sbcl cl-launch make git xz-utils wget sudo gcc g++ make
-RUN sudo apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
+RUN apt-get install -y build-essential curl sbcl cl-launch make git xz-utils wget sudo gcc g++
+RUN apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
+RUN dpkg --add-architecture i386
+RUN apt-get install -y wine mono-complete wine-development wine32-development wine64-development
 
 # Node.js
 RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
