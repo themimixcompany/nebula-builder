@@ -19,6 +19,8 @@ OPT_ARCH="linux"
 OPT_BUILD_DIR="./build"
 OPT_RELEASES_DIR="./releases"
 
+OPT_BASE_NAME="mvp"
+
 error () {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "error: ${@}" >&2
@@ -156,8 +158,7 @@ create_releases () {
   debug create_releases "$@"
 
   cd ${OPT_BUILD_DIR}/mvp-electron
-  mkdir -p ${OPT_RELEASES_DIR}/${OPT_ARCH}
-  cp -a out/mvp-${OPT_ARCH}-x64 ${OPT_RELEASES_DIR}/${OPT_ARCH}
+  cp -a out/${OPT_BASE_NAME}-${OPT_ARCH}-x64 ${OPT_RELEASES_DIR}/${OPT_ARCH}
 }
 
 main () {
