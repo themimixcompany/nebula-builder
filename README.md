@@ -42,3 +42,9 @@ To create this directory, run:
 After creating this directory, run the builder itself:
 
     docker run --rm -v ./releases:/releases mvp-builder
+
+
+Notes
+-----
+
+Due to the fact that the Docker container is inside a Linux environment, the engine builder can only create Linux binaries. To be able to include Windows versions, the binaries have to imported separately. One way to do that is by building on a Windows machine, creating GitHub binary releases, then import the Windows binaries from GitHub to this repo.

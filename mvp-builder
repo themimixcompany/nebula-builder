@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=0.0.1
+readonly VERSION=0.0.3
 
 OPT_HELP=
 OPT_DEBUG=
@@ -16,7 +16,7 @@ OPT_VIEWER=git@github.com:themimixcompany/mpv-shell.git
 OPT_ENGINE=git@github.com:themimixcompany/engine.git
 
 OPT_ARCH="linux"
-OPT_STAGING_DIR="./staging"
+OPT_BUILD_DIR="./build"
 OPT_RELEASES_DIR="./releases"
 
 error () {
@@ -50,7 +50,7 @@ debug () {
 parse_arguments () {
   debug parse_arguments "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hdva:s:r: --longoptions help,debug,verbose,arch:,staging-dir:,releases-dir: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hdva:b: --longoptions help,debug,verbose,arch:,build-dir:,releases-dir: -- "$@")
 
   if [[ $? != 0 ]]; then error "failed to parsing arguments."; fi
 
@@ -62,7 +62,7 @@ parse_arguments () {
       (-d|--debug) OPT_DEBUG=true; shift ;;
       (-v|--verbose) OPT_VERBOSE=true; shift ;;
       (-a|--arch) OPT_ARCH=$2; shift 2 ;;
-      (-s|--staging-dir) OPT_STAGING_DIR=$2; shift 2 ;;
+      (-b|--build-dir) OPT_BUILD_DIR=$2; shift 2 ;;
       (-r|--releases-dir) OPT_RELEASES_DIR=$2; shift 2 ;;
       (--) shift; break ;;
       (*) break ;;
@@ -90,44 +90,75 @@ OPTIONS:
   -h, --help           Show this help
 
 COMMANDS:
-  -a, --arch           Specify the target architecure (default: ${OPT_ARCH})
-  -s, --staging-dir    Specify the staging directory (default: ${OPT_STAGING_DIR})
-  -r, --releases-dir   Specify the releases directory (default: ${OPT_RELEASES_DIR})
+  -a, --arch               Specify the target architecure (default: ${OPT_ARCH})
+  -b, --build-dir          Specify the build dir (default: ${OPT_BUILD_DIR})
+  -r, --releases-dir       Specify the releases directory (default: ${OPT_RELEASES_DIR})
 EOF
   exit 0
-}
-
-ensure_base_directory () {
-  debug ensure_base_directory "$@"
-
-  if [[ ! -d "${BASE_DIR}" ]]; then
-    mkdir -p "${BASE_DIR}"
-  fi
 }
 
 ensure_directories () {
   debug ensure_directories "$@"
 
-  mkdir -p "$OPT_STAGING_DIR"
+  mkdir -p "$OPT_BUILD_DIR"
+}
+
+fetch_electron_sources () {
+  debug fetch_electron_sources "$@"
+
+  ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/mvp-electron"
+}
+
+fetch_viewer_sources () {
+  debug fetch_viewer_sources "$@"
+
+  ssh-run "git clone $OPT_VIEWER $OPT_BUILD_DIR/mvp-electron/app/viewer"
+}
+
+fetch_engine_sources () {
+  debug fetch_engine_sources "$@"
+
+  ssh-run "git clone $OPT_ENGINE /root/common-lisp/engine"
+}
+
+build_engine () {
+  debug build_engine "$@"
+
+  sbcl --eval '(ql:quickload :engine)' \
+       --eval '(engine:build #P"/var/lib/build/mvp-electron/app/engine/")'
+}
+
+fetch_engine_binaries () {
+  debug fetch_engine_binaries "$@"
 }
 
 fetch_dependencies () {
   debug fetch_dependencies "$@"
 
-  #rm -rf "$OPT_STAGING_DIR"
-  mkdir -p "$OPT_STAGING_DIR"
-  cd "$OPT_STAGING_DIR"
+  fetch_electron_sources
+  fetch_viewer_sources
+
+  fetch_engine_sources
+  build_engine
+
+  #fetch_engine_binaries
 }
 
+build_binaries () {
+  debug build_binaries "$@"
 
-# NOTE:
-# - fetch mvp-electron sources to ${OPT_STAGING_DIR}
-# - fetch mvp-shell sources to ${OPT_STAGING_DIR}/mvp-electron/app/viewer/
-# - fetch engine releases to ${OPT_STAGING_DIR}/mvp-electron/app/engine/
-# - run npm commands
-#   + npm install
-# - build executables with electron-forge
-#   + use --arch flag
+  cd $OPT_BUILD_DIR/mvp-electron
+  npm install
+  electron-forge package --platform=${OPT_ARCH}
+}
+
+create_releases () {
+  debug create_releases "$@"
+
+  cd ${OPT_BUILD_DIR}/mvp-electron
+  mkdir -p ${OPT_RELEASES_DIR}/${OPT_ARCH}
+  cp -a out/mvp-${OPT_ARCH}-x64 ${OPT_RELEASES_DIR}/${OPT_ARCH}
+}
 
 main () {
   debug main "$@"
@@ -137,6 +168,8 @@ main () {
 
   ensure_directories
   fetch_dependencies
+  build_binaries
+  create_releases
 }
 
 main "$@"

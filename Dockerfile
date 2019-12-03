@@ -2,37 +2,53 @@ FROM ubuntu:bionic
 
 # Labels
 LABEL maintainer="rom@mimix.io"
-LABEL version="0.0.2"
+LABEL version="0.0.3"
 LABEL description="Dockerfile for mvp-builder"
 
+# Environment
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Packages
-RUN apt-get update -y
+RUN apt-get update
+RUN apt-get install -y software-properties-common
 RUN apt-get install -y build-essential curl sbcl cl-launch make git xz-utils wget sudo gcc g++
 RUN apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
+RUN add-apt-repository universe
+RUN add-apt-repository restricted
+RUN add-apt-repository multiverse
+RUN apt-get install -y mono-complete
+run apt-get install -y wine64-development
 RUN dpkg --add-architecture i386
-RUN apt-get install -y wine mono-complete wine-development wine32-development wine64-development
+RUN apt-get update
+RUN apt-get install -y wine32-development
+
+# SSH
+RUN mkdir -p /root/.ssh && chmod 0700 /root/.ssh && ssh-keyscan github.com > /root/.ssh/known_hosts
 
 # Node.js
 RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-RUN apt-get install -y nodejs npm
+RUN apt-get install -y nodejs
 RUN npm config set user 0
 RUN npm config set unsafe-perm true
 RUN npm install -g electron
+RUN npm install -g electron-forge
 
 # Lisp
 RUN mkdir -p ~/bin ~/common-lisp
 RUN git clone https://gitlab.common-lisp.net/asdf/asdf.git ~/common-lisp/asdf
 RUN git clone https://github.com/ebzzry/mof ~/common-lisp/mof
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp
-RUN sbcl --noinform --load quicklisp.lisp --eval  '(quicklisp-quickstart:install)' --eval '(let ((ql-util::*do-not-prompt* t)) (ql:add-to-init-file) (sb-ext:exit))'
+RUN sbcl --noinform --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --eval '(let ((ql-util::*do-not-prompt* t)) (ql:add-to-init-file) (sb-ext:exit))'
+RUN rm -f quicklisp.lisp 2>&1 /dev/null
 
 # Builder
 COPY ./mvp-builder /usr/bin/mvp-builder
-RUN chmod +x /usr/bin/mvp-builder
+COPY ./ssh-run /usr/bin/ssh-run
 
 # Other directories
-RUN mkdir -p /var/lib/staging
-RUN mkdir -p /releases
+RUN mkdir -p /var/lib/build
+#RUN mkdir -p /var/lib/releases
 
 # Entrypoint
-CMD [ "/usr/bin/mvp-builder", "--staging-dir", "/var/lib/staging", "--releases-dir", "/releases" ]
+#CMD [ "/usr/bin/mvp-builder", "--build-dir", "/var/lib/build", "--releases-dir", "/var/lib/releases" ]
+CMD [ "/bin/bash"]
