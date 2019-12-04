@@ -11,6 +11,12 @@ OPT_HELP=
 OPT_DEBUG=
 OPT_VERBOSE=
 
+API="https://api.github.com"
+REPO=
+FILE=
+VER=
+PARSER=
+
 function error () {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "error: ${@}" >&2
@@ -65,7 +71,10 @@ function processArguments () {
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     displayUsage
   else
-    return 0
+    #return 0
+    REPO="$1"
+    FILE="$2"
+    VER="$3"
   fi
 }
 
@@ -73,20 +82,60 @@ function displayUsage () {
   debug displayUsage "$@"
 
   cat << EOF
-${SELF} [OPTIONS]... <COMMAND> [OPTIONS]...
+USAGE:
+  ${SELF} [OPTIONS]... <organization>/<repository> <file> <version>
 
 OPTIONS:
   -h, --help           Show this help
 
-COMMANDS:
+EXAMPLE:
+  TOKEN=12345 ./${SELF} themimixcompany/engine engine_unix_X64 latest
 EOF
   exit 0
 }
 
-function launchAgent () {
-  debug launchAgent "$@"
+function checkToken () {
+  debug checkToken "$@"
 
-  ssh-agent bash -c "ssh-add /root/.ssh/id_rsa; $@"
+  if [[ -z "$TOKEN" ]]; then
+    echo "TOKEN not set. Exiting."
+    exit 1
+  fi
+}
+
+function gh_curl () {
+  debug gh_curl "$@"
+
+  curl -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3.raw" $@
+}
+
+function setParser () {
+  debug setParser "$@"
+
+  if [[ "$VER" = "latest" ]]; then
+    PARSER=".[0].assets | map(select(.name == \"$FILE\"))[0].id"
+  else
+    PARSER=". | map(select(.tag_name == \"$VER\"))[0].assets | map(select(.name == \"$FILE\"))[0].id"
+  fi
+}
+
+function setAssetId () {
+  debug setAssetId "$@"
+
+  ASSET_ID=`gh_curl -s $API/repos/$REPO/releases | jq "$PARSER"`
+
+  if [[ "$ASSET_ID" = "null" ]]; then
+    echo "ERROR: version not found $VER"
+    exit 1
+  fi
+}
+
+function fetch_component () {
+  debug fetch_components "$@"
+
+  wget --auth-no-challenge --header='Accept:application/octet-stream' \
+       https://$TOKEN:@api.github.com/repos/$REPO/releases/assets/$ASSET_ID \
+       -O $FILE
 }
 
 function main () {
@@ -95,7 +144,10 @@ function main () {
   parseArguments "$@"
   processArguments "$@"
 
-  launchAgent "$@"
+  checkToken
+  setParser
+  setAssetId
+  fetch_component
 }
 
 main "$@"

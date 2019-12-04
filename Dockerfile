@@ -9,18 +9,17 @@ LABEL description="Dockerfile for mvp-builder"
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Packages
+# Note: revise the order
 RUN apt-get update
 RUN apt-get install -y software-properties-common
-RUN apt-get install -y build-essential curl sbcl cl-launch make git xz-utils wget sudo gcc g++
+RUN apt-get install -y build-essential curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq
 RUN apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
 RUN add-apt-repository universe
 RUN add-apt-repository restricted
 RUN add-apt-repository multiverse
-RUN apt-get install -y mono-complete
-run apt-get install -y wine64-development
 RUN dpkg --add-architecture i386
 RUN apt-get update
-RUN apt-get install -y wine32-development
+RUN apt-get install -y mono-complete wine64-development wine32-development
 
 # SSH
 RUN mkdir -p /root/.ssh && chmod 0700 /root/.ssh && ssh-keyscan github.com > /root/.ssh/known_hosts
@@ -42,13 +41,13 @@ RUN sbcl --noinform --load quicklisp.lisp --eval '(quicklisp-quickstart:install)
 RUN rm -f quicklisp.lisp 2>&1 /dev/null
 
 # Builder
-COPY ./mvp-builder /usr/bin/mvp-builder
-COPY ./ssh-run /usr/bin/ssh-run
+RUN mkdir -p /opt/bin
+COPY ./mvp-builder /opt/bin/mvp-builder
+COPY ./ssh-run /opt/bin/ssh-run
+COPY ./fetch /opt/bin/fetch
 
 # Other directories
 RUN mkdir -p /var/lib/build
-#RUN mkdir -p /var/lib/releases
 
 # Entrypoint
-#CMD [ "/usr/bin/mvp-builder", "--build-dir", "/var/lib/build", "--releases-dir", "/var/lib/releases" ]
-CMD [ "/bin/bash"]
+CMD [ "/opt/bin/mvp-builder", "--build-dir", "/var/lib/build", "--sources", "/var/lib/sources", "--releases", "/var/lib/releases", "--token", "${TOKEN}", "--archs", "${ARCHS}" ]

@@ -11,17 +11,22 @@ OPT_HELP=
 OPT_DEBUG=
 OPT_VERBOSE=
 
+OPT_BASE_NAME="mvp"
+
 OPT_ELECTRON=git@github.com:themimixcompany/mvp-electron.git
 OPT_VIEWER=git@github.com:themimixcompany/mpv-shell.git
 OPT_ENGINE=git@github.com:themimixcompany/engine.git
 
+# OPT_ARCH = "linux" | "win32" | "darwin"
 OPT_ARCH="linux"
+OPT_ARCHS="linux,win32"
+
 OPT_BUILD_DIR="./build"
-OPT_RELEASES_DIR="./releases"
+OPT_SOURCES="./sources"
+OPT_RELEASES="./releases"
+OPT_TOKEN=
 
-OPT_BASE_NAME="mvp"
-
-error () {
+function error () {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "error: ${@}" >&2
   else
@@ -31,7 +36,7 @@ error () {
   exit 1
 }
 
-warn () {
+function warn () {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "warning: ${@}" >&2
   else
@@ -39,7 +44,7 @@ warn () {
   fi
 }
 
-debug () {
+function debug () {
   if [[ -n "${OPT_DEBUG}" ]]; then
     echo '**'
     echo \${@}: ${@}
@@ -49,12 +54,14 @@ debug () {
   fi
 }
 
-parse_arguments () {
-  debug parse_arguments "$@"
+function parseArguments () {
+  debug parseArguments "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hdva:b: --longoptions help,debug,verbose,arch:,build-dir:,releases-dir: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hdva:A:b:s:r:t: --longoptions help,debug,verbose,arch:,archs:,build-dir:,sources:,releases:,token: -- "$@")
 
-  if [[ $? != 0 ]]; then error "failed to parsing arguments."; fi
+  if [[ $? != 0 ]]; then
+    error "Failed to parse arguments. Exiting."
+  fi
 
   eval set -- "${opts}"
 
@@ -64,113 +71,202 @@ parse_arguments () {
       (-d|--debug) OPT_DEBUG=true; shift ;;
       (-v|--verbose) OPT_VERBOSE=true; shift ;;
       (-a|--arch) OPT_ARCH=$2; shift 2 ;;
+      (-A|--archs) OPT_ARCHS=$2; shift 2 ;;
       (-b|--build-dir) OPT_BUILD_DIR=$2; shift 2 ;;
-      (-r|--releases-dir) OPT_RELEASES_DIR=$2; shift 2 ;;
+      (-s|--sources) OPT_SOURCES=$2; shift 2 ;;
+      (-r|--releases) OPT_RELEASES=$2; shift 2 ;;
+      (-t|--token) OPT_TOKEN=$2; shift 2 ;;
       (--) shift; break ;;
       (*) break ;;
     esac
   done
 }
 
-process_arguments () {
-  debug process_arguments "$@"
+function processArguments () {
+  debug processArguments "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
-    display_usage
+    displayUsage
   else
     return 0
   fi
 }
 
-display_usage () {
-  debug display_usage "$@"
+function displayUsage () {
+  debug displayUsage "$@"
 
   cat << EOF
 ${SELF} [OPTIONS]... <COMMAND> [OPTIONS]...
 
 OPTIONS:
-  -h, --help           Show this help
+  -h, --help       Show this help
 
 COMMANDS:
-  -a, --arch               Specify the target architecure (default: ${OPT_ARCH})
-  -b, --build-dir          Specify the build dir (default: ${OPT_BUILD_DIR})
-  -r, --releases-dir       Specify the releases directory (default: ${OPT_RELEASES_DIR})
+  -a, --arch       Target architecure (default: ${OPT_ARCH})
+  -A, --archs      Comma-separated list of target architectures (default: ${OPT_ARCHS})
+  -b, --build-dir  Location for internal building (default: ${OPT_BUILD_DIR})
+  -s, --sources    Location where to get the dependencies (default: ${OPT_SOURCES})
+  -r, --releases   Location where to create the releases (default: ${OPT_RELEASES})
+  -t, --token      The GitHub authentication token
 EOF
   exit 0
 }
 
-ensure_directories () {
-  debug ensure_directories "$@"
+function ensureDirectories () {
+  debug ensureDirectories "$@"
 
   mkdir -p "$OPT_BUILD_DIR"
 }
 
-fetch_electron_sources () {
+function fetchRemoteElectronSources () {
   debug fetch_electron_sources "$@"
 
-  ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/mvp-electron"
+  /opt/bin/ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/mvp-electron"
 }
 
-fetch_viewer_sources () {
+function fetchRemoteViewerSources () {
   debug fetch_viewer_sources "$@"
 
-  ssh-run "git clone $OPT_VIEWER $OPT_BUILD_DIR/mvp-electron/app/viewer"
+  /opt/bin/ssh-run "git clone $OPT_VIEWER $OPT_BUILD_DIR/mvp-electron/app/viewer"
 }
 
-fetch_engine_sources () {
+function fetchRemoteEngineSources () {
   debug fetch_engine_sources "$@"
 
-  ssh-run "git clone $OPT_ENGINE /root/common-lisp/engine"
+  /opt/bin/ssh-run "git clone $OPT_ENGINE /root/common-lisp/engine"
 }
 
-build_engine () {
-  debug build_engine "$@"
+function buildEngine () {
+  debug buildEngine "$@"
 
   sbcl --eval '(ql:quickload :engine)' \
        --eval '(engine:build #P"/var/lib/build/mvp-electron/app/engine/")'
 }
 
-fetch_engine_binaries () {
+function fetchLocalSources () {
+  debug fetchLocalSources "$@"
+
+  git clone ${OPT_SOURCES}/mvp-electron ${OPT_BUILD_DIR}/mvp-electron
+  git clone ${OPT_SOURCES}/mvp-shell ${OPT_BUILD_DIR}/mvp-electron/app/viewer
+}
+
+function fetchRemoteEngineBinaries () {
   debug fetch_engine_binaries "$@"
+
+  local dir=${OPT_BUILD_DIR}/mvp-electron/app/engine
+
+  local repo=themimixcompany/engine
+  local ver=latest
+
+  local OIFS=${IFS}
+
+  # Note: save the binary to the correct location as conditionalized by OPT_ARCH(S)
+  # Note: should the engine must be saved after the creation of a release?
+
+  mkdir -p ${dir}
+  cd ${dir}
+
+
+  if [[ -n "${OPT_ARCHS}" ]]; then
+    IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
+    for a in ${ARCHITECTURES[@]}; do
+      case ${a} in
+        linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_unix_X64 ${ver} ;;
+        win32) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_windows_X64.exe ${ver} ;;
+        *) warn "No matching engines found. Skipping."; return 0 ;;
+      esac
+    done
+  elif [[ -n "${OPT_ARCH}" ]]; then
+    case ${OPT_ARCH} in
+      linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_unix_X64 ${ver} ;;
+      win32) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_windows_X64.exe ${ver} ;;
+      *) warn "No matching engines found. Skipping."; return 0 ;;
+    esac
+  else
+    warn "No archs specified. Skipping."
+  fi
+
+  IFS=${OIFS}
 }
 
-fetch_dependencies () {
-  debug fetch_dependencies "$@"
+function fetchDependencies () {
+  debug fetchDependencies "$@"
 
-  fetch_electron_sources
-  fetch_viewer_sources
+  if [[ "${OPT_SOURCES}" == "github" ]]; then
+    #fetchRemoteElectronSources
+    #fetchRemoteViewerSources
+    #fetchRemoteEngineSources
 
-  fetch_engine_sources
-  build_engine
+    #buildEngine
+    #fetchRemoteEngineBinaries
 
-  #fetch_engine_binaries
+    return 0
+  else
+    fetchLocalSources
+    fetchRemoteEngineBinaries
+  fi
 }
 
-build_binaries () {
-  debug build_binaries "$@"
+function buildBinaries () {
+  debug buildBinaries "$@"
+  local OIFS=${IFS}
 
   cd $OPT_BUILD_DIR/mvp-electron
+
+  # Note: Is this step still necessary?
   npm install
-  electron-forge package --platform=${OPT_ARCH}
+
+  if [[ -n "${OPT_ARCHS}" ]]; then
+    IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
+    for a in ${ARCHITECTURES[@]}; do
+      electron-forge package --platform=${a}
+    done
+  elif [[ -n "${OPT_ARCH}" ]]; then
+    electron-forge package --platform=${OPT_ARCH}
+  else
+    warn "No archs specified. Skipping."
+  fi
+
+  IFS=${OIFS}
 }
 
-create_releases () {
-  debug create_releases "$@"
+function createArchReleases () {
+  debug createArchReleases "$@"
 
-  cd ${OPT_BUILD_DIR}/mvp-electron
-  cp -a out/${OPT_BASE_NAME}-${OPT_ARCH}-x64 ${OPT_RELEASES_DIR}/${OPT_ARCH}
+  # Note: should the releases directory be cleared first?
+  # Note: arch could also be conditionalized here
+  if [[ -d ${OPT_BUILD_DIR}/mvp-electron/out/${OPT_BASE_NAME}-${OPT_ARCH}-x64 ]]; then
+    cp -av ${OPT_BUILD_DIR}/mvp-electron/out/${OPT_BASE_NAME}-${OPT_ARCH}-x64 ${OPT_RELEASES}/${OPT_ARCH}
+  else
+    error "Release directory not found."
+  fi
 }
 
-main () {
+function createDockerReleases () {
+  debug createDockerReleases "$@"
+
+  return 0
+}
+
+function createReleases () {
+  debug createReleases "$@"
+
+  createArchReleases
+
+  # Note: Is this possible to do inside a Docker container?
+  createDockerReleases
+}
+
+function main () {
   debug main "$@"
 
-  parse_arguments "$@"
-  process_arguments "$@"
+  parseArguments "$@"
+  processArguments "$@"
 
-  ensure_directories
-  fetch_dependencies
-  build_binaries
-  create_releases
+  ensureDirectories
+  fetchDependencies
+  buildBinaries
+  createReleases
 }
 
 main "$@"

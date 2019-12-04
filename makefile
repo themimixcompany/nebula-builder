@@ -12,10 +12,10 @@ build:
 
 run:
 	docker run --rm -it \
-	--mount type=bind,source=$(CURDIR)/ssh/id_rsa,target=/root/.ssh/id_rsa \
-	--mount type=bind,source=$(CURDIR)/ssh/id_rsa.pub,target=/root/.ssh/id_rsa.pub \
-	--volume $(CURDIR)/releases:/var/lib/releases \
+	--mount type=bind,source=${SSH_PRIVATE_KEY},target=/root/.ssh/id_rsa \
+	--mount type=bind,source=${SSH_PUBLIC_KEY},target=/root/.ssh/id_rsa.pub \
+	--volume ${SOURCES}:/var/lib/sources \
+	--volume ${RELEASES}:/var/lib/releases \
+	--env TOKEN=${TOKEN} \
+	--env ARCHS=${ARCHS} \
 	$(NAME) /bin/bash
-
-run1:
-	docker run --rm -it -v $SSH_AUTH_SOCK:/tmp/ssh_auth.sock -e SSH_AUTH_SOCK=/tmp/ssh_auth.sock $(NAME) /bin/sh
