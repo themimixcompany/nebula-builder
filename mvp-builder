@@ -227,6 +227,7 @@ function createArchReleases () {
     IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
     for a in ${ARCHITECTURES[@]}; do
       if [[ -d ${outSource}/${OPT_BASE_NAME}-${a}-x64 ]]; then
+        rm -rf ${OPT_RELEASES}/${a}
         cp -av ${outSource}/${OPT_BASE_NAME}-${a}-x64 ${OPT_RELEASES}/${a}
       else
         warn "Release directory not found."
@@ -242,8 +243,13 @@ function createArchReleases () {
 function createElectronReleases () {
   debug createElectronReleases "$@"
 
-  mkdir -p ${OPT_RELEASES}/electron
-  rsync -v --delete --exclude out ${OPT_BUILD_DIR}/mvp-electron/ ${OPT_RELEASES}/electron
+  rm -rf ${OPT_RELEASES}/electron
+
+  #mkdir -p ${OPT_RELEASES}/electron
+  #rsync -avz --delete --exclude out ${OPT_BUILD_DIR}/mvp-electron/ ${OPT_RELEASES}/electron
+
+  tar -cf - ${OPT_BUILD_DIR}/mvp-electron | tar -C ${OPT_RELEASES} -xvf -
+  mv ${OPT_RELEASES}/mvp-electron ${OPT_RELEASES}/electron
 }
 
 function createDockerReleases () {
