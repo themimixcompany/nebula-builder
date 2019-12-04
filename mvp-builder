@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=0.0.3
+readonly VERSION=0.0.4
 
 OPT_HELP=
 OPT_DEBUG=
@@ -257,7 +257,7 @@ function createReleases () {
 
   createArchReleases
   createElectronReleases
-  createDockerReleases    # Note: Is this possible to do inside a Docker container?
+  createDockerReleases    # Note: Is it possible to do inside a Docker container?
 }
 
 function main () {

@@ -2,7 +2,7 @@ FROM ubuntu:bionic
 
 # Labels
 LABEL maintainer="rom@mimix.io"
-LABEL version="0.0.3"
+LABEL version="0.0.4"
 LABEL description="Dockerfile for mvp-builder"
 
 # Environment
