@@ -117,7 +117,8 @@ EOF
 function ensure_directories () {
   debug ensure_directories "$@"
 
-  mkdir -p "$OPT_BUILD_DIR"
+  mkdir -p "${OPT_BUILD_DIR}"
+  mkdir -p "${OPT_RELEASES_DIR}"
 }
 
 function fetch_remote_sources () {
