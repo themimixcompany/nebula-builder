@@ -11,17 +11,22 @@ OPT_HELP=
 OPT_DEBUG=
 OPT_VERBOSE=
 
-OPT_BASE_NAME="mvp"
+readonly OPT_BASE_NAME="mvp"
 
-OPT_ELECTRON=git@github.com:themimixcompany/mvp-electron.git
-OPT_VIEWER=git@github.com:themimixcompany/mpv-shell.git
-OPT_ENGINE=git@github.com:themimixcompany/engine.git
+readonly OPT_ELECTRON=git@github.com:themimixcompany/mvp-electron.git
+readonly OPT_VIEWER=git@github.com:themimixcompany/mpv-shell.git
+readonly OPT_ENGINE=git@github.com:themimixcompany/engine.git
+
+OPT_ENGINE_LINUX=engine_unix_X64
+OPT_ENGINE_WINDOWS=engine_windows_X64.exe
 
 OPT_ARCHS="linux,win32"
 OPT_BUILD_DIR=
 OPT_SOURCES=
 OPT_RELEASES=
 OPT_TOKEN=
+
+OPT_TEMP_DIR=
 
 function error () {
   if [[ "${OS}" == "Darwin" ]]; then
@@ -51,8 +56,8 @@ function debug () {
   fi
 }
 
-function parseArguments () {
-  debug parseArguments "$@"
+function parse_arguments () {
+  debug parse_arguments "$@"
 
   local opts=$(getopt -n "${SELF}" --options hdva:b:s:r:t: --longoptions help,debug,verbose,archs:,build-dir:,sources:,releases:,token: -- "$@")
 
@@ -78,20 +83,20 @@ function parseArguments () {
   done
 }
 
-function processArguments () {
-  debug processArguments "$@"
+function process_arguments () {
+  debug process_arguments "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
-    displayUsage
+    display_usage
   elif [[ -z "${OPT_ARCHS}" || -z "${OPT_BUILD_DIR}" || -z "${OPT_SOURCES}" || -z "${OPT_RELEASES}" ]]; then
-    displayUsage
+    display_usage
   else
     return 0
   fi
 }
 
-function displayUsage () {
-  debug displayUsage "$@"
+function display_usage () {
+  debug display_usage "$@"
 
   cat << EOF
 ${SELF} [OPTIONS]... <COMMAND> [OPTIONS]...
@@ -109,106 +114,71 @@ EOF
   exit 0
 }
 
-function ensureDirectories () {
-  debug ensureDirectories "$@"
+function ensure_directories () {
+  debug ensure_directories "$@"
 
   mkdir -p "$OPT_BUILD_DIR"
 }
 
-function fetchRemoteElectronSources () {
-  debug fetchRemoteElectronSources "$@"
+function fetch_remote_sources () {
+  debug fetch_remote_sources "$@"
 
   /opt/bin/ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/mvp-electron"
-}
-
-function fetchRemoteViewerSources () {
-  debug fetchRemoteViewerSources "$@"
-
   /opt/bin/ssh-run "git clone $OPT_VIEWER $OPT_BUILD_DIR/mvp-electron/app/viewer"
 }
 
-function fetchRemoteEngineSources () {
-  debug fetchRemoteEngineSources "$@"
-
-  /opt/bin/ssh-run "git clone $OPT_ENGINE /root/common-lisp/engine"
-}
-
-function buildEngine () {
-  debug buildEngine "$@"
-
-  sbcl --eval '(ql:quickload :engine)' \
-       --eval '(engine:build #P"/var/lib/build/mvp-electron/app/engine/")'
-}
-
-function fetchLocalSources () {
-  debug fetchLocalSources "$@"
+function fetch_local_sources () {
+  debug fetch_local_sources "$@"
 
   git clone ${OPT_SOURCES}/mvp-electron ${OPT_BUILD_DIR}/mvp-electron
   git clone ${OPT_SOURCES}/mvp-shell ${OPT_BUILD_DIR}/mvp-electron/app/viewer
 }
 
-function fetchRemoteEngineBinaries () {
-  debug fetchRemoteEngineBinaries "$@"
+function fetch_remote_engine_sources () {
+  debug fetch_remote_engine_sources "$@"
 
-  local dir=${OPT_BUILD_DIR}/mvp-electron/app/engine
+  /opt/bin/ssh-run "git clone $OPT_ENGINE /root/common-lisp/engine"
+}
+
+function build_engine () {
+  debug build_engine "$@"
+
+  sbcl --eval '(ql:quickload :engine)' \
+       --eval '(engine:build #P"/var/lib/build/mvp-electron/app/engine/")'
+}
+
+function create_temp_dir () {
+  debug create_temp_dir "$@"
+
+  OPT_TEMP_DIR=$(mktemp -d)
+}
+
+function fetch_remote_engine_binaries () {
+  debug fetch_remote_engine_binaries "$@"
+
+  # Note: Change dir to a staging area. Maybe /tmp/engine?
+  #local dir=${OPT_BUILD_DIR}/mvp-electron/app/engine
+  local dir=${OPT_TEMP_DIR}
+
   local repo=themimixcompany/engine
   local ver=latest
 
   local OIFS=${IFS}
 
-  # Note: save the binary to the correct location as conditionalized by OPT_ARCH(S)
-  # Note: should the engine must be saved after the creation of a release?
+  # Note: Save the binary to the correct location as conditionalized by OPT_ARCH(S)
+  # Note: Should the engine must be saved after the creation of a release?
 
-  mkdir -p ${dir}
+  #mkdir -p ${dir}
   cd ${dir}
-
 
   if [[ -n "${OPT_ARCHS}" ]]; then
     IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
     for a in ${ARCHITECTURES[@]}; do
       case ${a} in
-        linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_unix_X64 ${ver} ;;
-        win32) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_windows_X64.exe ${ver} ;;
-        *) warn "fetchRemoteEngineBinaries: No matching engines found. Skipping."; return 0 ;;
+        linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_LINUX} ${ver} ;;
+        win32) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_WINDOWS} ${ver} ;;
+        *) warn "No matching engines found. Skipping."; return 0 ;;
       esac
-    done
-  else
-    warn "fetchRemoteEngineBinaries: No archs specified. Skipping."
-  fi
-
-  IFS=${OIFS}
-}
-
-function fetchDependencies () {
-  debug fetchDependencies "$@"
-
-  if [[ "${OPT_SOURCES}" == "github" ]]; then
-    #fetchRemoteElectronSources
-    #fetchRemoteViewerSources
-    #fetchRemoteEngineSources
-
-    #buildEngine
-    #fetchRemoteEngineBinaries
-
-    return 0
-  else
-    fetchLocalSources
-    fetchRemoteEngineBinaries
-  fi
-}
-
-function buildBinaries () {
-  debug buildBinaries "$@"
-  local OIFS=${IFS}
-
-  cd $OPT_BUILD_DIR/mvp-electron
-
-  npm install
-
-  if [[ -n "${OPT_ARCHS}" ]]; then
-    IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
-    for a in ${ARCHITECTURES[@]}; do
-      electron-forge package --platform=${a}
     done
   else
     warn "No archs specified. Skipping."
@@ -217,18 +187,79 @@ function buildBinaries () {
   IFS=${OIFS}
 }
 
-function createArchReleases () {
-  debug createArchReleases "$@"
+function fetch_dependencies () {
+  debug fetch_dependencies "$@"
+
+  if [[ "${OPT_SOURCES}" == "github" ]]; then
+    #fetch_remote_electron_sources
+    #fetch_remote_viewer_sources
+    fetch_remote_sources
+
+    #fetch_remote_engine_sources
+    #build_engine
+
+    fetch_remote_engine_binaries
+  else
+    fetch_local_sources
+
+    #build_engine
+
+    fetch_remote_engine_binaries
+  fi
+}
+
+function build_binaries () {
+  debug build_binaries "$@"
 
   local OIFS=${IFS}
-  local outSource=${OPT_BUILD_DIR}/mvp-electron/out
+  local engine_dir=${OPT_BUILD_DIR}/mvp-electron/app/engine
+
+  mkdir -p ${engine_dir}
+  cd $OPT_BUILD_DIR/mvp-electron
+
+  npm install
+
+  if [[ -n "${OPT_ARCHS}" ]]; then
+    IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
+
+    for a in ${ARCHITECTURES[@]}; do
+      case ${a} in
+        linux)
+          cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_LINUX} ${engine_dir}
+          chmod +x ${engine_dir}/${OPT_ENGINE_LINUX}
+          ;;
+        win32)
+          cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_WINDOWS} ${engine_dir}
+          chmod +x ${engine_dir}/${OPT_ENGINE_WINDOWS}
+          ;;
+        *) warn "No archs found"; return 1 ;;
+      esac
+      electron-forge package --platform=${a}
+      case ${a} in
+        linux) rm -v ${engine_dir}/${OPT_ENGINE_LINUX} ;;
+        win32) rm -v ${engine_dir}/${OPT_ENGINE_WINDOWS} ;;
+        *) warn "No archs found"; return 1 ;;
+      esac
+    done
+  else
+    warn "No archs specified. Skipping."
+  fi
+
+  IFS=${OIFS}
+}
+
+function create_arch_releases () {
+  debug create_arch_releases "$@"
+
+  local OIFS=${IFS}
+  local out_source=${OPT_BUILD_DIR}/mvp-electron/out
 
   if [[ -n "${OPT_ARCHS}" ]]; then
     IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
     for a in ${ARCHITECTURES[@]}; do
-      if [[ -d ${outSource}/${OPT_BASE_NAME}-${a}-x64 ]]; then
+      if [[ -d ${out_source}/${OPT_BASE_NAME}-${a}-x64 ]]; then
         rm -rf ${OPT_RELEASES}/${a}
-        cp -av ${outSource}/${OPT_BASE_NAME}-${a}-x64 ${OPT_RELEASES}/${a}
+        cp -av ${out_source}/${OPT_BASE_NAME}-${a}-x64 ${OPT_RELEASES}/${a}
       else
         warn "Release directory not found."
       fi
@@ -240,42 +271,51 @@ function createArchReleases () {
   IFS=${OIFS}
 }
 
-function createElectronReleases () {
-  debug createElectronReleases "$@"
+function create_electron_releases () {
+  debug create_electron_releases "$@"
 
   rm -rf ${OPT_RELEASES}/electron
 
   #mkdir -p ${OPT_RELEASES}/electron
   #rsync -avz --delete --exclude out ${OPT_BUILD_DIR}/mvp-electron/ ${OPT_RELEASES}/electron
 
-  tar -cf - ${OPT_BUILD_DIR}/mvp-electron | tar -C ${OPT_RELEASES} -xvf -
-  mv ${OPT_RELEASES}/mvp-electron ${OPT_RELEASES}/electron
+  #tar -C ${OPT_BUILD_DIR} --exclude ".git*" --exclude "mvp-electron/out/" \
+  #    -cf - mvp-electron | tar -C ${OPT_RELEASES} -xvf -
+  #mv ${OPT_RELEASES}/mvp-electron ${OPT_RELEASES}/electron
+
+  mkdir -p ${OPT_RELEASES}/electron
+  tar -C ${OPT_BUILD_DIR}/mvp-electron --exclude ".git*" --exclude "out/" -cf - . |
+    tar -C ${OPT_RELEASES}/electron -xvf -
+
+  cp -v ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/app/engine
+  chmod +x ${OPT_RELEASES}/electron/app/engine/engine_*
 }
 
-function createDockerReleases () {
-  debug createDockerReleases "$@"
+function create_docker_releases () {
+  debug create_docker_releases "$@"
 
   return 0
 }
 
-function createReleases () {
-  debug createReleases "$@"
+function create_releases () {
+  debug create_releases "$@"
 
-  createArchReleases
-  createElectronReleases
-  createDockerReleases    # Note: Is it possible to do this inside a Docker container?
+  create_arch_releases
+  create_electron_releases
+  create_docker_releases    # Note: Is it possible to do this inside a Docker container?
 }
 
 function main () {
   debug main "$@"
 
-  parseArguments "$@"
-  processArguments "$@"
+  parse_arguments "$@"
+  process_arguments "$@"
 
-  ensureDirectories
-  fetchDependencies
-  buildBinaries
-  createReleases
+  ensure_directories
+  create_temp_dir
+  fetch_dependencies
+  build_binaries
+  create_releases
 }
 
 main "$@"

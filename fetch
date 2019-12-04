@@ -45,8 +45,8 @@ function debug () {
   fi
 }
 
-function parseArguments () {
-  debug parseArguments "$@"
+function parse_arguments () {
+  debug parse_arguments "$@"
 
   local opts=$(getopt -n "${SELF}" --options hdv --longoptions help,debug,verbose -- "$@")
 
@@ -65,11 +65,11 @@ function parseArguments () {
   done
 }
 
-function processArguments () {
-  debug processArguments "$@"
+function process_arguments () {
+  debug process_arguments "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
-    displayUsage
+    display_usage
   else
     #return 0
     REPO="$1"
@@ -78,8 +78,8 @@ function processArguments () {
   fi
 }
 
-function displayUsage () {
-  debug displayUsage "$@"
+function display_usage () {
+  debug display_usage "$@"
 
   cat << EOF
 USAGE:
@@ -94,8 +94,8 @@ EOF
   exit 0
 }
 
-function checkToken () {
-  debug checkToken "$@"
+function check_token () {
+  debug check_token "$@"
 
   if [[ -z "$TOKEN" ]]; then
     echo "TOKEN not set. Exiting."
@@ -109,8 +109,8 @@ function gh_curl () {
   curl -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3.raw" $@
 }
 
-function setParser () {
-  debug setParser "$@"
+function set_parser () {
+  debug set_parser "$@"
 
   if [[ "$VER" = "latest" ]]; then
     PARSER=".[0].assets | map(select(.name == \"$FILE\"))[0].id"
@@ -119,8 +119,8 @@ function setParser () {
   fi
 }
 
-function setAssetId () {
-  debug setAssetId "$@"
+function set_asset_id () {
+  debug set_asset_id "$@"
 
   ASSET_ID=`gh_curl -s $API/repos/$REPO/releases | jq "$PARSER"`
 
@@ -141,12 +141,12 @@ function fetch_component () {
 function main () {
   debug main "$@"
 
-  parseArguments "$@"
-  processArguments "$@"
+  parse_arguments "$@"
+  process_arguments "$@"
 
-  checkToken
-  setParser
-  setAssetId
+  check_token
+  set_parser
+  set_asset_id
   fetch_component
 }
 
