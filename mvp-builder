@@ -154,7 +154,6 @@ function fetchRemoteEngineBinaries () {
   debug fetch_engine_binaries "$@"
 
   local dir=${OPT_BUILD_DIR}/mvp-electron/app/engine
-
   local repo=themimixcompany/engine
   local ver=latest
 
@@ -233,13 +232,30 @@ function buildBinaries () {
 function createArchReleases () {
   debug createArchReleases "$@"
 
-  # Note: should the releases directory be cleared first?
-  # Note: arch could also be conditionalized here
-  if [[ -d ${OPT_BUILD_DIR}/mvp-electron/out/${OPT_BASE_NAME}-${OPT_ARCH}-x64 ]]; then
-    cp -av ${OPT_BUILD_DIR}/mvp-electron/out/${OPT_BASE_NAME}-${OPT_ARCH}-x64 ${OPT_RELEASES}/${OPT_ARCH}
+  local OIFS=${IFS}
+  local baseOutSource=${OPT_BUILD_DIR}/mvp-electron/out/${OPT_BASE_NAME}
+
+  if [[ -n "${OPT_ARCHS}" ]]; then
+    IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
+    for a in ${ARCHITECTURES[@]}; do
+      case ${a} in
+        if [[ -d ${baseOutSource}-${a}-x64 ]]; then
+          cp -av ${baseOutSource}-${a}-x64 ${OPT_RELEASES}/${a}
+        else
+          warn "Release directory not found."
+        fi
+      esac
+    done
+  elif [[ -n "${OPT_ARCH}" ]]; then
+    if [[ -d ${baseOutSource}-${OPT_ARCH}-x64 ]]; then
+      cp -av ${baseOutSource}-${OPT_ARCH}-x64 ${OPT_RELEASES}/${OPT_ARCH}
+    else
+      warn "Release directory not found."
+    fi
   else
-    error "Release directory not found."
+    warn "No archs specified. Skipping."
   fi
+  IFS=${OIFS}
 }
 
 function createDockerReleases () {
