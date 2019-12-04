@@ -209,7 +209,6 @@ function buildBinaries () {
   if [[ -n "${OPT_ARCHS}" ]]; then
     IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
     for a in ${ARCHITECTURES[@]}; do
-      echo "*** electron-forge package --platform=${a}"
       electron-forge package --platform=${a}
     done
   else
@@ -237,7 +236,14 @@ function createArchReleases () {
   else
     warn "No archs specified. Skipping."
   fi
+
   IFS=${OIFS}
+}
+
+function createElectronReleases () {
+  debug createElectronReleases "$@"
+
+  rsync -v --exclude out ${OPT_BUILD_DIR}/mvp-electron ${OPT_RELEASES}/electron
 }
 
 function createDockerReleases () {
@@ -250,9 +256,8 @@ function createReleases () {
   debug createReleases "$@"
 
   createArchReleases
-
-  # Note: Is this possible to do inside a Docker container?
-  createDockerReleases
+  createElectronReleases
+  createDockerReleases    # Note: Is this possible to do inside a Docker container?
 }
 
 function main () {

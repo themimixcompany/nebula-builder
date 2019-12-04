@@ -9,10 +9,9 @@ LABEL description="Dockerfile for mvp-builder"
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Packages
-# Note: revise the order
 RUN apt-get update
 RUN apt-get install -y software-properties-common
-RUN apt-get install -y build-essential curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq
+RUN apt-get install -y build-essential curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq rsync
 RUN apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
 RUN add-apt-repository universe
 RUN add-apt-repository restricted
