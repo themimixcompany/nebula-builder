@@ -203,7 +203,6 @@ function buildBinaries () {
 
   cd $OPT_BUILD_DIR/mvp-electron
 
-  # Note: Is this step still necessary?
   npm install
 
   if [[ -n "${OPT_ARCHS}" ]]; then
@@ -243,7 +242,8 @@ function createArchReleases () {
 function createElectronReleases () {
   debug createElectronReleases "$@"
 
-  rsync -v --exclude out ${OPT_BUILD_DIR}/mvp-electron ${OPT_RELEASES}/electron
+  mkdir -p ${OPT_RELEASES}/electron
+  rsync -v --delete --exclude out ${OPT_BUILD_DIR}/mvp-electron/ ${OPT_RELEASES}/electron
 }
 
 function createDockerReleases () {
@@ -257,7 +257,7 @@ function createReleases () {
 
   createArchReleases
   createElectronReleases
-  createDockerReleases    # Note: Is it possible to do inside a Docker container?
+  createDockerReleases    # Note: Is it possible to do this inside a Docker container?
 }
 
 function main () {
