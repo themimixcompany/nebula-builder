@@ -50,4 +50,4 @@ COPY ./fetch /opt/bin/fetch
 RUN mkdir -p /var/lib/build
 
 # Entrypoint
-CMD [ "/opt/bin/mvp-builder", "--build-dir", "/var/lib/build", "--sources", "/var/lib/sources", "--releases", "/var/lib/releases", "--token", "${TOKEN}", "--archs", "${ARCHS}" ]
+CMD [ "/bin/bash", "-c", "/opt/bin/mvp-builder --build-dir /var/lib/build --sources /var/lib/sources --releases /var/lib/releases --token $TOKEN --archs $ARCHS" ]

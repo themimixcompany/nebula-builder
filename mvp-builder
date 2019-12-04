@@ -17,13 +17,10 @@ OPT_ELECTRON=git@github.com:themimixcompany/mvp-electron.git
 OPT_VIEWER=git@github.com:themimixcompany/mpv-shell.git
 OPT_ENGINE=git@github.com:themimixcompany/engine.git
 
-# OPT_ARCH = "linux" | "win32" | "darwin"
-OPT_ARCH="linux"
 OPT_ARCHS="linux,win32"
-
-OPT_BUILD_DIR="./build"
-OPT_SOURCES="./sources"
-OPT_RELEASES="./releases"
+OPT_BUILD_DIR=
+OPT_SOURCES=
+OPT_RELEASES=
 OPT_TOKEN=
 
 function error () {
@@ -57,7 +54,7 @@ function debug () {
 function parseArguments () {
   debug parseArguments "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hdva:A:b:s:r:t: --longoptions help,debug,verbose,arch:,archs:,build-dir:,sources:,releases:,token: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hdva:b:s:r:t: --longoptions help,debug,verbose,archs:,build-dir:,sources:,releases:,token: -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -70,8 +67,7 @@ function parseArguments () {
       (-h|--help) OPT_HELP=true; shift ;;
       (-d|--debug) OPT_DEBUG=true; shift ;;
       (-v|--verbose) OPT_VERBOSE=true; shift ;;
-      (-a|--arch) OPT_ARCH=$2; shift 2 ;;
-      (-A|--archs) OPT_ARCHS=$2; shift 2 ;;
+      (-a|--archs) OPT_ARCHS=$2; shift 2 ;;
       (-b|--build-dir) OPT_BUILD_DIR=$2; shift 2 ;;
       (-s|--sources) OPT_SOURCES=$2; shift 2 ;;
       (-r|--releases) OPT_RELEASES=$2; shift 2 ;;
@@ -86,6 +82,8 @@ function processArguments () {
   debug processArguments "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
+    displayUsage
+  elif [[ -z "${OPT_ARCHS}" || -z "${OPT_BUILD_DIR}" || -z "${OPT_SOURCES}" || -z "${OPT_RELEASES}" ]]; then
     displayUsage
   else
     return 0
@@ -102,8 +100,7 @@ OPTIONS:
   -h, --help       Show this help
 
 COMMANDS:
-  -a, --arch       Target architecure (default: ${OPT_ARCH})
-  -A, --archs      Comma-separated list of target architectures (default: ${OPT_ARCHS})
+  -a, --archs      Comma-separated list of target architectures (default: ${OPT_ARCHS})
   -b, --build-dir  Location for internal building (default: ${OPT_BUILD_DIR})
   -s, --sources    Location where to get the dependencies (default: ${OPT_SOURCES})
   -r, --releases   Location where to create the releases (default: ${OPT_RELEASES})
@@ -119,19 +116,19 @@ function ensureDirectories () {
 }
 
 function fetchRemoteElectronSources () {
-  debug fetch_electron_sources "$@"
+  debug fetchRemoteElectronSources "$@"
 
   /opt/bin/ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/mvp-electron"
 }
 
 function fetchRemoteViewerSources () {
-  debug fetch_viewer_sources "$@"
+  debug fetchRemoteViewerSources "$@"
 
   /opt/bin/ssh-run "git clone $OPT_VIEWER $OPT_BUILD_DIR/mvp-electron/app/viewer"
 }
 
 function fetchRemoteEngineSources () {
-  debug fetch_engine_sources "$@"
+  debug fetchRemoteEngineSources "$@"
 
   /opt/bin/ssh-run "git clone $OPT_ENGINE /root/common-lisp/engine"
 }
@@ -151,7 +148,7 @@ function fetchLocalSources () {
 }
 
 function fetchRemoteEngineBinaries () {
-  debug fetch_engine_binaries "$@"
+  debug fetchRemoteEngineBinaries "$@"
 
   local dir=${OPT_BUILD_DIR}/mvp-electron/app/engine
   local repo=themimixcompany/engine
@@ -172,17 +169,11 @@ function fetchRemoteEngineBinaries () {
       case ${a} in
         linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_unix_X64 ${ver} ;;
         win32) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_windows_X64.exe ${ver} ;;
-        *) warn "No matching engines found. Skipping."; return 0 ;;
+        *) warn "fetchRemoteEngineBinaries: No matching engines found. Skipping."; return 0 ;;
       esac
     done
-  elif [[ -n "${OPT_ARCH}" ]]; then
-    case ${OPT_ARCH} in
-      linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_unix_X64 ${ver} ;;
-      win32) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} engine_windows_X64.exe ${ver} ;;
-      *) warn "No matching engines found. Skipping."; return 0 ;;
-    esac
   else
-    warn "No archs specified. Skipping."
+    warn "fetchRemoteEngineBinaries: No archs specified. Skipping."
   fi
 
   IFS=${OIFS}
@@ -218,10 +209,9 @@ function buildBinaries () {
   if [[ -n "${OPT_ARCHS}" ]]; then
     IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
     for a in ${ARCHITECTURES[@]}; do
+      echo "*** electron-forge package --platform=${a}"
       electron-forge package --platform=${a}
     done
-  elif [[ -n "${OPT_ARCH}" ]]; then
-    electron-forge package --platform=${OPT_ARCH}
   else
     warn "No archs specified. Skipping."
   fi
@@ -233,25 +223,17 @@ function createArchReleases () {
   debug createArchReleases "$@"
 
   local OIFS=${IFS}
-  local baseOutSource=${OPT_BUILD_DIR}/mvp-electron/out/${OPT_BASE_NAME}
+  local outSource=${OPT_BUILD_DIR}/mvp-electron/out
 
   if [[ -n "${OPT_ARCHS}" ]]; then
     IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
     for a in ${ARCHITECTURES[@]}; do
-      case ${a} in
-        if [[ -d ${baseOutSource}-${a}-x64 ]]; then
-          cp -av ${baseOutSource}-${a}-x64 ${OPT_RELEASES}/${a}
-        else
-          warn "Release directory not found."
-        fi
-      esac
+      if [[ -d ${outSource}/${OPT_BASE_NAME}-${a}-x64 ]]; then
+        cp -av ${outSource}/${OPT_BASE_NAME}-${a}-x64 ${OPT_RELEASES}/${a}
+      else
+        warn "Release directory not found."
+      fi
     done
-  elif [[ -n "${OPT_ARCH}" ]]; then
-    if [[ -d ${baseOutSource}-${OPT_ARCH}-x64 ]]; then
-      cp -av ${baseOutSource}-${OPT_ARCH}-x64 ${OPT_RELEASES}/${OPT_ARCH}
-    else
-      warn "Release directory not found."
-    fi
   else
     warn "No archs specified. Skipping."
   fi

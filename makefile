@@ -18,4 +18,4 @@ run:
 	--volume ${RELEASES}:/var/lib/releases \
 	--env TOKEN=${TOKEN} \
 	--env ARCHS=${ARCHS} \
-	$(NAME) /bin/bash
+	$(NAME)
