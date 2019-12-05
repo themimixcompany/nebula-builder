@@ -307,8 +307,8 @@ function create_zip_releases () {
     for a in ${ARCHS[@]}; do
       if [[ -d ${OPT_RELEASES}/${a} ]]; then
         cd ${OPT_RELEASES}/${a}
-        remove ../${a}-${OPT_TAG}.zip
-        zip -r ../${a}-${OPT_TAG}.zip .
+        remove ../${OPT_BASE_NAME}-${a}-${OPT_TAG}.zip
+        zip -r ../${OPT_BASE_NAME}-${a}-${OPT_TAG}.zip .
       fi
     done
   else
@@ -316,8 +316,8 @@ function create_zip_releases () {
   fi
 
   cd ${OPT_RELEASES}/electron
-  remove ../electron-${OPT_TAG}.zip
-  zip -r ../electron-${OPT_TAG}.zip .
+  remove ../${OPT_BASE_NAME}-electron-${OPT_TAG}.zip
+  zip -r ../${OPT_BASE_NAME}-electron-${OPT_TAG}.zip .
 }
 
 function create_docker_releases () {
