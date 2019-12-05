@@ -1,8 +1,8 @@
 .PHONY: all build
 
 DIR := $(shell basename "$(shell pwd)")
-NAME = "mvp-builder"
-DOCKERFILE = "./Dockerfile"
+NAME = mvp-builder
+DOCKERFILE = ./Dockerfile
 
 all: build
 	docker run --rm -it \
