@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=0.0.4
+readonly VERSION=0.0.5
 
 OPT_HELP=
 OPT_DEBUG=
@@ -17,6 +17,8 @@ readonly OPT_ELECTRON=git@github.com:themimixcompany/mvp-electron.git
 readonly OPT_VIEWER=git@github.com:themimixcompany/mpv-shell.git
 readonly OPT_ENGINE=git@github.com:themimixcompany/engine.git
 
+OPT_TEMP_DIR=
+
 OPT_ENGINE_LINUX=engine_unix_X64
 OPT_ENGINE_WINDOWS=engine_windows_X64.exe
 
@@ -25,8 +27,7 @@ OPT_BUILD_DIR=
 OPT_SOURCES=
 OPT_RELEASES=
 OPT_TOKEN=
-
-OPT_TEMP_DIR=
+OPT_TAG=
 
 function error () {
   if [[ "${OS}" == "Darwin" ]]; then
@@ -59,7 +60,7 @@ function debug () {
 function parse_arguments () {
   debug parse_arguments "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hdva:b:s:r:t: --longoptions help,debug,verbose,archs:,build-dir:,sources:,releases:,token: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hdva:b:s:r:t:T: --longoptions help,debug,verbose,archs:,build-dir:,sources:,releases:,token:,tag: -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -77,6 +78,7 @@ function parse_arguments () {
       (-s|--sources) OPT_SOURCES=$2; shift 2 ;;
       (-r|--releases) OPT_RELEASES=$2; shift 2 ;;
       (-t|--token) OPT_TOKEN=$2; shift 2 ;;
+      (-T|--tag) OPT_TAG=$2; shift 2 ;;
       (--) shift; break ;;
       (*) break ;;
     esac
@@ -88,7 +90,9 @@ function process_arguments () {
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
-  elif [[ -z "${OPT_ARCHS}" || -z "${OPT_BUILD_DIR}" || -z "${OPT_SOURCES}" || -z "${OPT_RELEASES}" ]]; then
+  elif [[ -z "${OPT_ARCHS}" || -z "${OPT_BUILD_DIR}" ||
+            -z "${OPT_SOURCES}" || -z "${OPT_RELEASES}" ||
+            -z "${OPT_TAG}" ]]; then
     display_usage
   else
     return 0
@@ -109,7 +113,8 @@ COMMANDS:
   -b, --build-dir  Location for internal building (default: ${OPT_BUILD_DIR})
   -s, --sources    Location where to get the dependencies (default: ${OPT_SOURCES})
   -r, --releases   Location where to create the releases (default: ${OPT_RELEASES})
-  -t, --token      The GitHub authentication token
+  -t, --token      The GitHub authentication token (default: none)
+  -T, --tag        The name/version of a release (default: none)
 EOF
   exit 0
 }
@@ -119,6 +124,20 @@ function ensure_directories () {
 
   mkdir -p "${OPT_BUILD_DIR}"
   mkdir -p "${OPT_RELEASES}"
+}
+
+function remove () {
+  debug remove "$@"
+
+  if [[ -e "$@" ]]; then
+    rm -rv "$@"
+  fi
+}
+
+function move () {
+  debug move "$@"
+
+  mv -v "$@"
 }
 
 function fetch_remote_sources () {
@@ -157,24 +176,16 @@ function create_temp_dir () {
 function fetch_remote_engine_binaries () {
   debug fetch_remote_engine_binaries "$@"
 
-  # Note: Change dir to a staging area. Maybe /tmp/engine?
-  #local dir=${OPT_BUILD_DIR}/mvp-electron/app/engine
+  local OIFS=${IFS}
   local dir=${OPT_TEMP_DIR}
-
   local repo=themimixcompany/engine
   local ver=latest
 
-  local OIFS=${IFS}
-
-  # Note: Save the binary to the correct location as conditionalized by OPT_ARCH(S)
-  # Note: Should the engine must be saved after the creation of a release?
-
-  #mkdir -p ${dir}
   cd ${dir}
 
   if [[ -n "${OPT_ARCHS}" ]]; then
-    IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
-    for a in ${ARCHITECTURES[@]}; do
+    IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+    for a in ${ARCHS[@]}; do
       case ${a} in
         linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_LINUX} ${ver} ;;
         win32) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_WINDOWS} ${ver} ;;
@@ -221,9 +232,9 @@ function build_binaries () {
   npm install
 
   if [[ -n "${OPT_ARCHS}" ]]; then
-    IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
+    IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
 
-    for a in ${ARCHITECTURES[@]}; do
+    for a in ${ARCHS[@]}; do
       case ${a} in
         linux)
           cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_LINUX} ${engine_dir}
@@ -237,8 +248,8 @@ function build_binaries () {
       esac
       electron-forge package --platform=${a}
       case ${a} in
-        linux) rm -v ${engine_dir}/${OPT_ENGINE_LINUX} ;;
-        win32) rm -v ${engine_dir}/${OPT_ENGINE_WINDOWS} ;;
+        linux) remove ${engine_dir}/${OPT_ENGINE_LINUX} ;;
+        win32) remove ${engine_dir}/${OPT_ENGINE_WINDOWS} ;;
         *) warn "No archs found"; return 1 ;;
       esac
     done
@@ -256,11 +267,12 @@ function create_arch_releases () {
   local out_source=${OPT_BUILD_DIR}/mvp-electron/out
 
   if [[ -n "${OPT_ARCHS}" ]]; then
-    IFS="," read -ra ARCHITECTURES <<< "${OPT_ARCHS}"
-    for a in ${ARCHITECTURES[@]}; do
+    IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+    for a in ${ARCHS[@]}; do
       if [[ -d ${out_source}/${OPT_BASE_NAME}-${a}-x64 ]]; then
-        rm -rf ${OPT_RELEASES}/${a}
-        cp -av ${out_source}/${OPT_BASE_NAME}-${a}-x64 ${OPT_RELEASES}/${a}
+        remove ${OPT_RELEASES}/${a}
+        mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
+        move ${out_source}/${OPT_BASE_NAME}-${a}-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}
       else
         warn "Release directory not found."
       fi
@@ -275,21 +287,37 @@ function create_arch_releases () {
 function create_electron_releases () {
   debug create_electron_releases "$@"
 
-  rm -rf ${OPT_RELEASES}/electron
+  remove ${OPT_RELEASES}/electron
 
-  #mkdir -p ${OPT_RELEASES}/electron
-  #rsync -avz --delete --exclude out ${OPT_BUILD_DIR}/mvp-electron/ ${OPT_RELEASES}/electron
+  remove ${OPT_BUILD_DIR}/mvp-electron/.git*
+  remove ${OPT_BUILD_DIR}/mvp-electron/out
 
-  #tar -C ${OPT_BUILD_DIR} --exclude ".git*" --exclude "mvp-electron/out/" \
-  #    -cf - mvp-electron | tar -C ${OPT_RELEASES} -xvf -
-  #mv ${OPT_RELEASES}/mvp-electron ${OPT_RELEASES}/electron
+  mkdir -p ${OPT_RELEASES}/electron/${OPT_BASE_NAME}
+  move ${OPT_BUILD_DIR}/mvp-electron ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/${OPT_TAG}
 
-  mkdir -p ${OPT_RELEASES}/electron
-  tar -C ${OPT_BUILD_DIR}/mvp-electron --exclude ".git*" --exclude "out/" -cf - . |
-    tar -C ${OPT_RELEASES}/electron -xvf -
+  move ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/${OPT_TAG}/app/engine
+  chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/${OPT_TAG}/app/engine/engine_*
+}
 
-  cp -v ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/app/engine
-  chmod +x ${OPT_RELEASES}/electron/app/engine/engine_*
+function create_zip_releases () {
+  debug create_zip_releases "$@"
+
+  if [[ -n "${OPT_TAG}" ]]; then
+    IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+    for a in ${ARCHS[@]}; do
+      if [[ -d ${OPT_RELEASES}/${a} ]]; then
+        cd ${OPT_RELEASES}/${a}
+        remove ../${a}-${OPT_TAG}.zip
+        zip -r ../${a}-${OPT_TAG}.zip .
+      fi
+    done
+  else
+    error "No tag specified."
+  fi
+
+  cd ${OPT_RELEASES}/electron
+  remove ../electron-${OPT_TAG}.zip
+  zip -r ../electron-${OPT_TAG}.zip .
 }
 
 function create_docker_releases () {
@@ -303,6 +331,8 @@ function create_releases () {
 
   create_arch_releases
   create_electron_releases
+  create_zip_releases
+
   create_docker_releases    # Note: Is it possible to do this inside a Docker container?
 }
 
