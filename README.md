@@ -20,6 +20,12 @@ In order to use the builder, the Docker image must first be created. To do so, r
 docker build -t mvp-builder .
 ```
 
+If you have the tarball, you may load it instead of building it. To do so, run:
+
+```bash
+docker load -i mvp-builder.tar.gz
+```
+
 When it has finished running, it will create a Docker image named `mvp-builder`. You may check its existence with the following command:
 
 ```bash
