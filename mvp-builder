@@ -290,7 +290,7 @@ function create_electron_releases () {
   remove ${OPT_RELEASES}/electron
 
   remove ${OPT_BUILD_DIR}/mvp-electron/.git*
-  remove ${OPT_BUILD_DIR}/mvp-electron/out
+  #remove ${OPT_BUILD_DIR}/mvp-electron/out
 
   mkdir -p ${OPT_RELEASES}/electron/${OPT_BASE_NAME}
   move ${OPT_BUILD_DIR}/mvp-electron ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/${OPT_TAG}
@@ -320,20 +320,12 @@ function create_zip_releases () {
   zip -r ../${OPT_BASE_NAME}-electron-${OPT_TAG}.zip .
 }
 
-function create_docker_releases () {
-  debug create_docker_releases "$@"
-
-  return 0
-}
-
 function create_releases () {
   debug create_releases "$@"
 
   create_arch_releases
   create_electron_releases
   create_zip_releases
-
-  create_docker_releases    # Note: Is it possible to do this inside a Docker container?
 }
 
 function main () {
