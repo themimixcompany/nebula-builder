@@ -22,7 +22,7 @@ OPT_TEMP_DIR=
 OPT_ENGINE_LINUX=engine_unix_X64
 OPT_ENGINE_WINDOWS=engine_windows_X64.exe
 
-OPT_ARCHS="linux,win32"
+OPT_ARCHS="linux,windows"
 OPT_BUILD_DIR=
 OPT_SOURCES=
 OPT_RELEASES=
@@ -188,7 +188,7 @@ function fetch_remote_engine_binaries () {
     for a in ${ARCHS[@]}; do
       case ${a} in
         linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_LINUX} ${ver} ;;
-        win32) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_WINDOWS} ${ver} ;;
+        windows) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_WINDOWS} ${ver} ;;
         *) warn "No matching engines found. Skipping."; return 0 ;;
       esac
     done
@@ -239,17 +239,15 @@ function build_binaries () {
         linux)
           cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_LINUX} ${engine_dir}
           chmod +x ${engine_dir}/${OPT_ENGINE_LINUX}
+          electron-forge package --platform=linux
+          remove ${engine_dir}/${OPT_ENGINE_LINUX}
           ;;
-        win32)
+        windows)
           cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_WINDOWS} ${engine_dir}
           chmod +x ${engine_dir}/${OPT_ENGINE_WINDOWS}
+          electron-forge package --platform=win32
+          remove ${engine_dir}/${OPT_ENGINE_WINDOWS}
           ;;
-        *) warn "No archs found"; return 1 ;;
-      esac
-      electron-forge package --platform=${a}
-      case ${a} in
-        linux) remove ${engine_dir}/${OPT_ENGINE_LINUX} ;;
-        win32) remove ${engine_dir}/${OPT_ENGINE_WINDOWS} ;;
         *) warn "No archs found"; return 1 ;;
       esac
     done
@@ -265,14 +263,25 @@ function create_arch_releases () {
 
   local OIFS=${IFS}
   local out_source=${OPT_BUILD_DIR}/mvp-electron/out
+  local path=
 
   if [[ -n "${OPT_ARCHS}" ]]; then
     IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
     for a in ${ARCHS[@]}; do
-      if [[ -d ${out_source}/${OPT_BASE_NAME}-${a}-x64 ]]; then
-        remove ${OPT_RELEASES}/${a}
+      case ${a} in
+        linux) path=${out_source}/${OPT_BASE_NAME}-linux-x64 ;;
+        windows) path=${out_source}/${OPT_BASE_NAME}-win32-x64 ;;
+        *) warn "No archs found"; return 1;;
+      esac
+      if [[ -d ${path} ]]; then
+        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
-        move ${out_source}/${OPT_BASE_NAME}-${a}-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}
+
+        case ${a} in
+          linux) move ${path} ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}" ;;
+          windows) move ${path} ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}" ;;
+          *) warn "No archs found"; return 1 ;;
+        esac
       else
         warn "Release directory not found."
       fi
@@ -287,16 +296,16 @@ function create_arch_releases () {
 function create_electron_releases () {
   debug create_electron_releases "$@"
 
-  remove ${OPT_RELEASES}/electron
+  remove ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
 
   remove ${OPT_BUILD_DIR}/mvp-electron/.git*
-  #remove ${OPT_BUILD_DIR}/mvp-electron/out
+  remove ${OPT_BUILD_DIR}/mvp-electron/out
 
   mkdir -p ${OPT_RELEASES}/electron/${OPT_BASE_NAME}
-  move ${OPT_BUILD_DIR}/mvp-electron ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/${OPT_TAG}
+  move ${OPT_BUILD_DIR}/mvp-electron ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
 
-  move ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/${OPT_TAG}/app/engine
-  chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/${OPT_TAG}/app/engine/engine_*
+  move ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/engine
+  chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/engine/engine_*
 }
 
 function create_zip_releases () {
@@ -306,18 +315,20 @@ function create_zip_releases () {
     IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
     for a in ${ARCHS[@]}; do
       if [[ -d ${OPT_RELEASES}/${a} ]]; then
-        cd ${OPT_RELEASES}/${a}
-        remove ../${OPT_BASE_NAME}-${a}-${OPT_TAG}.zip
-        zip -r ../${OPT_BASE_NAME}-${a}-${OPT_TAG}.zip .
+        mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/zips
+        cd ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        remove ../zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip
+        zip -r ../zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip .
       fi
     done
   else
     error "No tag specified."
   fi
 
-  cd ${OPT_RELEASES}/electron
-  remove ../${OPT_BASE_NAME}-electron-${OPT_TAG}.zip
-  zip -r ../${OPT_BASE_NAME}-electron-${OPT_TAG}.zip .
+  mkdir -p ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/zips
+  cd ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
+  remove ../zips/electron-${OPT_BASE_NAME}-"${OPT_TAG}".zip
+  zip -r ../zips/electron-${OPT_BASE_NAME}-"${OPT_TAG}".zip .
 }
 
 function create_releases () {
