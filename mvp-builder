@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=0.0.5
+readonly VERSION=0.0.6
 
 OPT_HELP=
 OPT_DEBUG=
@@ -21,8 +21,9 @@ OPT_TEMP_DIR=
 
 OPT_ENGINE_LINUX=engine_unix_X64
 OPT_ENGINE_WINDOWS=engine_windows_X64.exe
+OPT_ENGINE_MACOS=engine_macos_X64
 
-OPT_ARCHS="linux,windows"
+OPT_ARCHS=
 OPT_BUILD_DIR=
 OPT_SOURCES=
 OPT_RELEASES=
@@ -189,6 +190,7 @@ function fetch_remote_engine_binaries () {
       case ${a} in
         linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_LINUX} ${ver} ;;
         windows) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_WINDOWS} ${ver} ;;
+        macos) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_MACOS} ${ver} ;;
         *) warn "No matching engines found. Skipping."; return 0 ;;
       esac
     done
@@ -248,6 +250,12 @@ function build_binaries () {
           electron-forge package --platform=win32
           remove ${engine_dir}/${OPT_ENGINE_WINDOWS}
           ;;
+        macos)
+          cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_MACOS} ${engine_dir}
+          chmod +x ${engine_dir}/${OPT_ENGINE_MACOS}
+          electron-forge package --platform=darwin
+          remove ${engine_dir}/${OPT_ENGINE_MACOS}
+          ;;
         *) warn "No archs found"; return 1 ;;
       esac
     done
@@ -271,17 +279,13 @@ function create_arch_releases () {
       case ${a} in
         linux) path=${out_source}/${OPT_BASE_NAME}-linux-x64 ;;
         windows) path=${out_source}/${OPT_BASE_NAME}-win32-x64 ;;
+        macos) path=${out_source}/${OPT_BASE_NAME}-darwin-x64 ;;
         *) warn "No archs found"; return 1;;
       esac
       if [[ -d ${path} ]]; then
         remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
-
-        case ${a} in
-          linux) move ${path} ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}" ;;
-          windows) move ${path} ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}" ;;
-          *) warn "No archs found"; return 1 ;;
-        esac
+        move ${path} ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
       else
         warn "Release directory not found."
       fi
