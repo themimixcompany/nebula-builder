@@ -11,7 +11,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Packages
 RUN apt-get update
 RUN apt-get install -y software-properties-common build-essential
-RUN apt-get install -y curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq rsync zip snapcraft
+RUN apt-get install -y curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq rsync zip snapcraft fakeroot
 RUN apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
 RUN add-apt-repository universe
 RUN add-apt-repository restricted
