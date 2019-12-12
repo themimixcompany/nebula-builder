@@ -30,6 +30,7 @@ RUN npm config set user 0
 RUN npm config set unsafe-perm true
 RUN npm install -g electron
 RUN npm install -g electron-forge
+RUN npm install -g electron-builder
 
 # Lisp
 RUN mkdir -p ~/bin ~/common-lisp
