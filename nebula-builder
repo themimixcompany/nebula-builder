@@ -11,7 +11,7 @@ OPT_HELP=
 OPT_DEBUG=
 OPT_VERBOSE=
 
-readonly OPT_BASE_NAME="Nebula"
+readonly OPT_BASE_NAME="nebula"
 
 readonly OPT_ELECTRON=git@github.com:themimixcompany/nebula.git
 readonly OPT_VIEWER=git@github.com:themimixcompany/local-world.git
