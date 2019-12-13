@@ -5,16 +5,16 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=0.0.6
+readonly VERSION=0.0.7
 
 OPT_HELP=
 OPT_DEBUG=
 OPT_VERBOSE=
 
-readonly OPT_BASE_NAME="mvp"
+readonly OPT_BASE_NAME="Nebula"
 
-readonly OPT_ELECTRON=git@github.com:themimixcompany/mvp-electron.git
-readonly OPT_VIEWER=git@github.com:themimixcompany/mpv-shell.git
+readonly OPT_ELECTRON=git@github.com:themimixcompany/nebula.git
+readonly OPT_VIEWER=git@github.com:themimixcompany/local-world.git
 readonly OPT_ENGINE=git@github.com:themimixcompany/engine.git
 
 OPT_TEMP_DIR=
@@ -144,15 +144,15 @@ function move () {
 function fetch_remote_sources () {
   debug fetch_remote_sources "$@"
 
-  /opt/bin/ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/mvp-electron"
-  /opt/bin/ssh-run "git clone $OPT_VIEWER $OPT_BUILD_DIR/mvp-electron/app/viewer"
+  /opt/bin/ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/nebula"
+  /opt/bin/ssh-run "git clone $OPT_VIEWER $OPT_BUILD_DIR/nebula/app/viewer"
 }
 
 function fetch_local_sources () {
   debug fetch_local_sources "$@"
 
-  git clone ${OPT_SOURCES}/mvp-electron ${OPT_BUILD_DIR}/mvp-electron
-  git clone ${OPT_SOURCES}/mvp-shell ${OPT_BUILD_DIR}/mvp-electron/app/viewer
+  git clone ${OPT_SOURCES}/nebula ${OPT_BUILD_DIR}/nebula
+  git clone ${OPT_SOURCES}/local-world ${OPT_BUILD_DIR}/nebula/app/viewer
 }
 
 function fetch_remote_engine_sources () {
@@ -165,7 +165,7 @@ function build_engine () {
   debug build_engine "$@"
 
   sbcl --eval '(ql:quickload :engine)' \
-       --eval '(engine:build #P"/var/lib/build/mvp-electron/app/engine/")'
+       --eval '(engine:build #P"/var/lib/build/nebula/app/engine/")'
 }
 
 function create_temp_dir () {
@@ -205,19 +205,10 @@ function fetch_dependencies () {
   debug fetch_dependencies "$@"
 
   if [[ "${OPT_SOURCES}" == "github" ]]; then
-    #fetch_remote_electron_sources
-    #fetch_remote_viewer_sources
     fetch_remote_sources
-
-    #fetch_remote_engine_sources
-    #build_engine
-
     fetch_remote_engine_binaries
   else
     fetch_local_sources
-
-    #build_engine
-
     fetch_remote_engine_binaries
   fi
 }
@@ -226,10 +217,10 @@ function build_binaries () {
   debug build_binaries "$@"
 
   local OIFS=${IFS}
-  local engine_dir=${OPT_BUILD_DIR}/mvp-electron/app/engine
+  local engine_dir=${OPT_BUILD_DIR}/nebula/app/engine
 
   mkdir -p ${engine_dir}
-  cd $OPT_BUILD_DIR/mvp-electron
+  cd $OPT_BUILD_DIR/nebula
 
   npm install
 
@@ -241,19 +232,22 @@ function build_binaries () {
         linux)
           cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_LINUX} ${engine_dir}
           chmod +x ${engine_dir}/${OPT_ENGINE_LINUX}
-          electron-forge package --platform=linux
+          electron-packager . --platform=linux --out=out --icon=assets/icons/icon.png --prune=true
+          electron-builder --linux --prepackaged out/${OPT_BASE_NAME}-linux-x64
           remove ${engine_dir}/${OPT_ENGINE_LINUX}
           ;;
         windows)
           cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_WINDOWS} ${engine_dir}
           chmod +x ${engine_dir}/${OPT_ENGINE_WINDOWS}
-          electron-forge package --platform=win32
+          electron-packager . --platform=win32 --out=out --icon=assets/icons/icon.ico --prune=true
+          electron-builder --windows --prepackaged out/${OPT_BASE_NAME}-win32-x64
           remove ${engine_dir}/${OPT_ENGINE_WINDOWS}
           ;;
         macos)
           cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_MACOS} ${engine_dir}
           chmod +x ${engine_dir}/${OPT_ENGINE_MACOS}
-          electron-forge package --platform=darwin
+          electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
+          #electron-builder --macos --prepackaged out/${OPT_BASE_NAME}-darwin-x64
           remove ${engine_dir}/${OPT_ENGINE_MACOS}
           ;;
         *) warn "No archs found"; return 1 ;;
@@ -270,25 +264,46 @@ function create_arch_releases () {
   debug create_arch_releases "$@"
 
   local OIFS=${IFS}
-  local out_source=${OPT_BUILD_DIR}/mvp-electron/out
+  local out_source=${OPT_BUILD_DIR}/nebula/out
   local path=
 
   if [[ -n "${OPT_ARCHS}" ]]; then
     IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
     for a in ${ARCHS[@]}; do
       case ${a} in
-        linux) path=${out_source}/${OPT_BASE_NAME}-linux-x64 ;;
-        windows) path=${out_source}/${OPT_BASE_NAME}-win32-x64 ;;
-        macos) path=${out_source}/${OPT_BASE_NAME}-darwin-x64 ;;
+        linux)
+          remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
+          move ${out_source}/${OPT_BASE_NAME}-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
+
+          if [[ -f ${out_source}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ]]; then
+            mv ${out_source}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
+          elif [[ -f ${out_source}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]]; then
+            mv ${out_source}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
+          fi
+        ;;
+        windows)
+          remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
+          move ${out_source}/${OPT_BASE_NAME}-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
+
+          if [[ -f ${out_source}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]]; then
+            mv ${out_source}/${out_source}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
+          fi
+        ;;
+        macos)
+          remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
+          move ${out_source}/${OPT_BASE_NAME}-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+
+          return 0
+        ;;
         *) warn "No archs found"; return 1;;
       esac
-      if [[ -d ${path} ]]; then
-        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
-        move ${path} ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-      else
-        warn "Release directory not found."
-      fi
     done
   else
     warn "No archs specified. Skipping."
@@ -302,11 +317,11 @@ function create_electron_releases () {
 
   remove ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
 
-  remove ${OPT_BUILD_DIR}/mvp-electron/.git*
-  remove ${OPT_BUILD_DIR}/mvp-electron/out
+  remove ${OPT_BUILD_DIR}/nebula/.git*
+  remove ${OPT_BUILD_DIR}/nebula/out
 
   mkdir -p ${OPT_RELEASES}/electron/${OPT_BASE_NAME}
-  move ${OPT_BUILD_DIR}/mvp-electron ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
+  move ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
 
   move ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/engine
   chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/engine/engine_*
@@ -339,8 +354,9 @@ function create_releases () {
   debug create_releases "$@"
 
   create_arch_releases
+  #create_arch_installers
   create_electron_releases
-  create_zip_releases
+  #create_zip_releases
 }
 
 function main () {

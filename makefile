@@ -1,7 +1,7 @@
 .PHONY: all build
 
 DIR := $(shell basename "$(shell pwd)")
-NAME = mvp-builder
+NAME = nebula-builder
 DOCKERFILE = ./Dockerfile
 
 all: build

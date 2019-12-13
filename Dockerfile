@@ -3,7 +3,7 @@ FROM ubuntu:bionic
 # Metadata
 LABEL maintainer="rom@mimix.io"
 LABEL version="0.0.5"
-LABEL description="Dockerfile for mvp-builder"
+LABEL description="Dockerfile for Nebula"
 
 # Environment
 ENV DEBIAN_FRONTEND=noninteractive
@@ -11,7 +11,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Packages
 RUN apt-get update
 RUN apt-get install -y software-properties-common build-essential
-RUN apt-get install -y curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq rsync zip snapcraft fakeroot
+RUN apt-get install -y curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq rsync zip
 RUN apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
 RUN add-apt-repository universe
 RUN add-apt-repository restricted
@@ -29,7 +29,7 @@ RUN apt-get install -y nodejs
 RUN npm config set user 0
 RUN npm config set unsafe-perm true
 RUN npm install -g electron
-RUN npm install -g electron-forge
+RUN npm install -g electron-packager
 RUN npm install -g electron-builder
 
 # Lisp
@@ -42,9 +42,9 @@ RUN rm -f quicklisp.lisp 2>&1 /dev/null
 
 # Builder
 RUN mkdir -p /opt/bin
-COPY ./mvp-builder /opt/bin/mvp-builder
+COPY ./nebula-builder /opt/bin/nebula-builder
 COPY ./ssh-run /opt/bin/ssh-run
 COPY ./fetch /opt/bin/fetch
 
 # Entrypoint
-CMD [ "/bin/bash", "-c", "/opt/bin/mvp-builder --build-dir /var/lib/build --sources /var/lib/sources --releases /var/lib/releases --token $TOKEN --archs $ARCHS --tag $TAG" ]
+CMD [ "/bin/bash", "-c", "/opt/bin/nebula-builder --build-dir /var/lib/build --sources /var/lib/sources --releases /var/lib/releases --token $TOKEN --archs $ARCHS --tag $TAG" ]
