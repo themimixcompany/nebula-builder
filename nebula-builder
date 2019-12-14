@@ -140,7 +140,7 @@ function move () {
 
   #[[ ! -d "$@" ]] && mkdir -p "$@"
 
-  mv -v "$@"
+  [[ -f "$1" ]] && mv -v "$@"
 }
 
 function fetch_remote_sources () {
