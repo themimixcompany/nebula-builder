@@ -138,6 +138,8 @@ function remove () {
 function move () {
   debug move "$@"
 
+  #[[ ! -d "$@" ]] && mkdir -p "$@"
+
   mv -v "$@"
 }
 
@@ -264,7 +266,7 @@ function create_arch_releases () {
   debug create_arch_releases "$@"
 
   local OIFS=${IFS}
-  local out_source=${OPT_BUILD_DIR}/nebula/out
+  local out=${OPT_BUILD_DIR}/nebula/out
   local path=
 
   if [[ -n "${OPT_ARCHS}" ]]; then
@@ -273,32 +275,25 @@ function create_arch_releases () {
       case ${a} in
         linux)
           remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
-          move ${out_source}/${OPT_BASE_NAME}-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          move ${out}/${OPT_BASE_NAME}-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
-
-          if [[ -f ${out_source}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ]]; then
-            mv ${out_source}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
-          elif [[ -f ${out_source}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]]; then
-            mv ${out_source}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
-          fi
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+          move ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+          move ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
         windows)
           remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
-          move ${out_source}/${OPT_BASE_NAME}-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          move ${out}/${OPT_BASE_NAME}-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
-
-          if [[ -f ${out_source}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]]; then
-            mv ${out_source}/${out_source}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/installers
-          fi
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+          move ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
         macos)
           remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}
-          move ${out_source}/${OPT_BASE_NAME}-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          move ${out}/${OPT_BASE_NAME}-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
           return 0
         ;;
@@ -317,14 +312,13 @@ function create_electron_releases () {
 
   remove ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
 
-  remove ${OPT_BUILD_DIR}/nebula/.git*
-  remove ${OPT_BUILD_DIR}/nebula/out
+  remove ${OPT_BUILD_DIR}/nebula/.git* ${OPT_BUILD_DIR}/nebula/out
 
   mkdir -p ${OPT_RELEASES}/electron/${OPT_BASE_NAME}
-  move ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
+  move ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-  move ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/engine
-  chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/engine/engine_*
+  move ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine
+  chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine/engine_*
 }
 
 function create_zip_releases () {
@@ -354,7 +348,6 @@ function create_releases () {
   debug create_releases "$@"
 
   create_arch_releases
-  #create_arch_installers
   create_electron_releases
   #create_zip_releases
 }
