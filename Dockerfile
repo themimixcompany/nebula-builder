@@ -47,4 +47,4 @@ COPY ./ssh-run /opt/bin/ssh-run
 COPY ./fetch /opt/bin/fetch
 
 # Entrypoint
-CMD [ "/bin/bash", "-c", "/opt/bin/nebula-builder --build-dir /var/lib/build --sources /var/lib/sources --releases /var/lib/releases --token $TOKEN --archs $ARCHS --tag $TAG" ]
+CMD [ "/bin/bash", "-c", "/opt/bin/nebula-builder --debug --build-dir /var/lib/build --sources /var/lib/sources --releases /var/lib/releases --token $TOKEN --archs $ARCHS --tag $TAG" ]

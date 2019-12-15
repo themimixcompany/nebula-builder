@@ -52,9 +52,7 @@ function debug () {
   if [[ -n "${OPT_DEBUG}" ]]; then
     echo '**'
     echo \${@}: ${@}
-    echo \$OPT_HELP: "${OPT_HELP}"
     echo \$OPT_DEBUG: "${OPT_DEBUG}"
-    echo \$OPT_VERBOSE: "${OPT_VERBOSE}"
   fi
 }
 
@@ -120,11 +118,17 @@ EOF
   exit 0
 }
 
+function make_directory () {
+  debug make_directory "$@"
+
+  mkdir -p "$@"
+}
+
 function ensure_directories () {
   debug ensure_directories "$@"
 
-  mkdir -p "${OPT_BUILD_DIR}"
-  mkdir -p "${OPT_RELEASES}"
+  make_directory "${OPT_BUILD_DIR}"
+  make_directory "${OPT_RELEASES}"
 }
 
 function remove () {
@@ -138,9 +142,9 @@ function remove () {
 function move () {
   debug move "$@"
 
-  #[[ ! -d "$@" ]] && mkdir -p "$@"
+  #[[ ! -d "$@" ]] && make_directory "$@"
 
-  [[ -f "$1" ]] && mv -v "$@"
+  [[ -e "$1" ]] && mv -v "$@"
 }
 
 function fetch_remote_sources () {
@@ -221,7 +225,7 @@ function build_binaries () {
   local OIFS=${IFS}
   local engine_dir=${OPT_BUILD_DIR}/nebula/app/engine
 
-  mkdir -p ${engine_dir}
+  make_directory ${engine_dir}
   cd $OPT_BUILD_DIR/nebula
 
   npm install
@@ -274,25 +278,26 @@ function create_arch_releases () {
     for a in ${ARCHS[@]}; do
       case ${a} in
         linux)
+          # Note: start here
           remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
           move ${out}/${OPT_BASE_NAME}-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
           move ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
           move ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
         windows)
           remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
           move ${out}/${OPT_BASE_NAME}-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
           move ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
         macos)
           remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
           move ${out}/${OPT_BASE_NAME}-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
           return 0
@@ -314,7 +319,7 @@ function create_electron_releases () {
 
   remove ${OPT_BUILD_DIR}/nebula/.git* ${OPT_BUILD_DIR}/nebula/out
 
-  mkdir -p ${OPT_RELEASES}/electron/${OPT_BASE_NAME}
+  make_directory ${OPT_RELEASES}/electron/${OPT_BASE_NAME}
   move ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
   move ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine
@@ -328,7 +333,7 @@ function create_zip_releases () {
     IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
     for a in ${ARCHS[@]}; do
       if [[ -d ${OPT_RELEASES}/${a} ]]; then
-        mkdir -p ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/zips
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/zips
         cd ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         remove ../zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip
         zip -r ../zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip .
@@ -338,7 +343,7 @@ function create_zip_releases () {
     error "No tag specified."
   fi
 
-  mkdir -p ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/zips
+  make_directory ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/zips
   cd ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
   remove ../zips/electron-${OPT_BASE_NAME}-"${OPT_TAG}".zip
   zip -r ../zips/electron-${OPT_BASE_NAME}-"${OPT_TAG}".zip .
@@ -348,7 +353,7 @@ function create_releases () {
   debug create_releases "$@"
 
   create_arch_releases
-  create_electron_releases
+  #create_electron_releases
   #create_zip_releases
 }
 
