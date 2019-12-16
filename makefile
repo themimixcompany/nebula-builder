@@ -14,6 +14,7 @@ all: build
 	--env ARCHS=${ARCHS} \
 	--env TAG=${TAG} \
 	$(NAME)
+	RELEASES=${RELEASES} TAG=${TAG} make -C ../nebula clean install macos_package macos_installers
 
 build:
 	docker build -f $(DOCKERFILE) -t $(NAME) .
