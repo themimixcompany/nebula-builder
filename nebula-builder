@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=0.0.7
+readonly VERSION=0.0.8
 
 OPT_HELP=
 OPT_DEBUG=
@@ -142,9 +142,7 @@ function remove () {
 function move () {
   debug move "$@"
 
-  #[[ ! -d "$@" ]] && make_directory "$@"
-
-  [[ -e "$1" ]] && mv -v "$@"
+  [[ $# == 2 && -e "$1" ]] && mv "$1" "$2"
 }
 
 function fetch_remote_sources () {
@@ -188,21 +186,18 @@ function fetch_remote_engine_binaries () {
   local repo=themimixcompany/engine
   local ver=latest
 
+  IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+
   cd ${dir}
 
-  if [[ -n "${OPT_ARCHS}" ]]; then
-    IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
-    for a in ${ARCHS[@]}; do
-      case ${a} in
-        linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_LINUX} ${ver} ;;
-        windows) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_WINDOWS} ${ver} ;;
-        macos) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_MACOS} ${ver} ;;
-        *) warn "No matching engines found. Skipping."; return 0 ;;
-      esac
-    done
-  else
-    warn "No archs specified. Skipping."
-  fi
+  for a in ${ARCHS[@]}; do
+    case ${a} in
+      linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_LINUX} ${ver} ;;
+      windows) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_WINDOWS} ${ver} ;;
+      macos) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_MACOS} ${ver} ;;
+      *) warn "No matching engines found. Skipping."; return 0 ;;
+    esac
+  done
 
   IFS=${OIFS}
 }
@@ -230,38 +225,34 @@ function build_binaries () {
 
   npm install
 
-  if [[ -n "${OPT_ARCHS}" ]]; then
-    IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+  IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
 
-    for a in ${ARCHS[@]}; do
-      case ${a} in
-        linux)
-          cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_LINUX} ${engine_dir}
-          chmod +x ${engine_dir}/${OPT_ENGINE_LINUX}
-          electron-packager . --platform=linux --out=out --icon=assets/icons/icon.png --prune=true
-          electron-builder --linux --prepackaged out/${OPT_BASE_NAME}-linux-x64
-          remove ${engine_dir}/${OPT_ENGINE_LINUX}
-          ;;
-        windows)
-          cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_WINDOWS} ${engine_dir}
-          chmod +x ${engine_dir}/${OPT_ENGINE_WINDOWS}
-          electron-packager . --platform=win32 --out=out --icon=assets/icons/icon.ico --prune=true
-          electron-builder --windows --prepackaged out/${OPT_BASE_NAME}-win32-x64
-          remove ${engine_dir}/${OPT_ENGINE_WINDOWS}
-          ;;
-        macos)
-          cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_MACOS} ${engine_dir}
-          chmod +x ${engine_dir}/${OPT_ENGINE_MACOS}
-          electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
-          #electron-builder --macos --prepackaged out/${OPT_BASE_NAME}-darwin-x64
-          remove ${engine_dir}/${OPT_ENGINE_MACOS}
-          ;;
-        *) warn "No archs found"; return 1 ;;
-      esac
-    done
-  else
-    warn "No archs specified. Skipping."
-  fi
+  for a in ${ARCHS[@]}; do
+    case ${a} in
+      linux)
+        cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_LINUX} ${engine_dir}
+        chmod +x ${engine_dir}/${OPT_ENGINE_LINUX}
+        electron-packager . --platform=linux --out=out --icon=assets/icons/icon.png --prune=true
+        electron-builder --linux --prepackaged out/${OPT_BASE_NAME}-linux-x64
+        remove ${engine_dir}/${OPT_ENGINE_LINUX}
+        ;;
+      windows)
+        cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_WINDOWS} ${engine_dir}
+        chmod +x ${engine_dir}/${OPT_ENGINE_WINDOWS}
+        electron-packager . --platform=win32 --out=out --icon=assets/icons/icon.ico --prune=true
+        electron-builder --windows --prepackaged out/${OPT_BASE_NAME}-win32-x64
+        remove ${engine_dir}/${OPT_ENGINE_WINDOWS}
+        ;;
+      macos)
+        cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_MACOS} ${engine_dir}
+        chmod +x ${engine_dir}/${OPT_ENGINE_MACOS}
+        electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
+        #electron-builder --macos --prepackaged out/${OPT_BASE_NAME}-darwin-x64
+        remove ${engine_dir}/${OPT_ENGINE_MACOS}
+        ;;
+      *) warn "No archs found"; return 1 ;;
+    esac
+  done
 
   IFS=${OIFS}
 }
@@ -271,43 +262,57 @@ function create_arch_releases () {
 
   local OIFS=${IFS}
   local out=${OPT_BUILD_DIR}/nebula/out
-  local path=
 
-  if [[ -n "${OPT_ARCHS}" ]]; then
-    IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
-    for a in ${ARCHS[@]}; do
-      case ${a} in
-        linux)
-          # Note: start here
-          remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          move ${out}/${OPT_BASE_NAME}-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+  IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
 
-          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
-          move ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
-          move ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+  for a in ${ARCHS[@]} electron; do
+    case ${a} in
+      linux)
+        # electron-builder
+        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        mv ${out}/${OPT_BASE_NAME}-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+
+        # electron-packager
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+        [[ -f ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ]] && mv ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+        [[ -f ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]] && mv ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
-        windows)
-          remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          move ${out}/${OPT_BASE_NAME}-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+      windows)
+        # electron-builder
+        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        mv ${out}/${OPT_BASE_NAME}-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
-          move ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+        # electron-packager
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+        [[ -f ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]] && mv ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
-        macos)
-          remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-          move ${out}/${OPT_BASE_NAME}-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+      macos)
+        # electron-builder
+        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        mv ${out}/${OPT_BASE_NAME}-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-          return 0
+        # electron-packager
         ;;
-        *) warn "No archs found"; return 1;;
-      esac
-    done
-  else
-    warn "No archs specified. Skipping."
-  fi
+      electron)
+        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+
+        remove ${OPT_BUILD_DIR}/nebula/.git
+        remove ${OPT_BUILD_DIR}/nebula/.gitignore
+        remove ${OPT_BUILD_DIR}/nebula/out
+
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+
+        mv ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+
+        mv ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine
+        chmod +x ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine/engine_*
+        ;;
+      *) warn "No archs found"; return 1;;
+    esac
+  done
 
   IFS=${OIFS}
 }
@@ -317,36 +322,35 @@ function create_electron_releases () {
 
   remove ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
 
-  remove ${OPT_BUILD_DIR}/nebula/.git* ${OPT_BUILD_DIR}/nebula/out
+  remove ${OPT_BUILD_DIR}/nebula/.git
+  remove ${OPT_BUILD_DIR}/nebula/.gitignore
+  remove ${OPT_BUILD_DIR}/nebula/out
 
-  make_directory ${OPT_RELEASES}/electron/${OPT_BASE_NAME}
-  move ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+  make_directory ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
 
-  move ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine
+  mv ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+
+  mv ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine
   chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine/engine_*
 }
 
 function create_zip_releases () {
   debug create_zip_releases "$@"
 
-  if [[ -n "${OPT_TAG}" ]]; then
-    IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
-    for a in ${ARCHS[@]}; do
-      if [[ -d ${OPT_RELEASES}/${a} ]]; then
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/zips
-        cd ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        remove ../zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip
-        zip -r ../zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip .
-      fi
-    done
-  else
-    error "No tag specified."
-  fi
+  local OIFS=${IFS}
 
-  make_directory ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/zips
-  cd ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
-  remove ../zips/electron-${OPT_BASE_NAME}-"${OPT_TAG}".zip
-  zip -r ../zips/electron-${OPT_BASE_NAME}-"${OPT_TAG}".zip .
+  IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+
+  for a in ${ARCHS[@]} electron; do
+    if [[ -d ${OPT_RELEASES}/${a} ]]; then
+      make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/zips
+      cd ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+      remove zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip
+      zip -r zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip app
+    fi
+  done
+
+  IFS=${OIFS}
 }
 
 function create_releases () {
@@ -354,7 +358,7 @@ function create_releases () {
 
   create_arch_releases
   #create_electron_releases
-  #create_zip_releases
+  create_zip_releases
 }
 
 function main () {
