@@ -14,14 +14,14 @@ OPT_VERBOSE=
 readonly OPT_BASE_NAME="nebula"
 
 readonly OPT_ELECTRON=git@github.com:themimixcompany/nebula.git
-readonly OPT_VIEWER=git@github.com:themimixcompany/local-world.git
-readonly OPT_ENGINE=git@github.com:themimixcompany/engine.git
+readonly OPT_WORLD=git@github.com:themimixcompany/local-world.git
+readonly OPT_STREAMS=git@github.com:themimixcompany/streams.git
 
 OPT_TEMP_DIR=
 
-OPT_ENGINE_LINUX=engine_unix_X64
-OPT_ENGINE_WINDOWS=engine_windows_X64.exe
-OPT_ENGINE_MACOS=engine_macos_X64
+OPT_STREAMS_LINUX=streams_unix_X64
+OPT_STREAMS_WINDOWS=streams_windows_X64.exe
+OPT_STREAMS_MACOS=streams_macos_X64
 
 OPT_ARCHS=
 OPT_BUILD_DIR=
@@ -149,27 +149,27 @@ function fetch_remote_sources () {
   debug fetch_remote_sources "$@"
 
   /opt/bin/ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/nebula"
-  /opt/bin/ssh-run "git clone $OPT_VIEWER $OPT_BUILD_DIR/nebula/app/viewer"
+  /opt/bin/ssh-run "git clone $OPT_WORLD $OPT_BUILD_DIR/nebula/app/world"
 }
 
 function fetch_local_sources () {
   debug fetch_local_sources "$@"
 
   git clone ${OPT_SOURCES}/nebula ${OPT_BUILD_DIR}/nebula
-  git clone ${OPT_SOURCES}/local-world ${OPT_BUILD_DIR}/nebula/app/viewer
+  git clone ${OPT_SOURCES}/local-world ${OPT_BUILD_DIR}/nebula/app/world
 }
 
-function fetch_remote_engine_sources () {
-  debug fetch_remote_engine_sources "$@"
+function fetch_remote_streams_sources () {
+  debug fetch_remote_streams_sources "$@"
 
-  /opt/bin/ssh-run "git clone $OPT_ENGINE /root/common-lisp/engine"
+  /opt/bin/ssh-run "git clone $OPT_STREAMS /root/common-lisp/streams"
 }
 
-function build_engine () {
-  debug build_engine "$@"
+function build_streams () {
+  debug build_streams "$@"
 
-  sbcl --eval '(ql:quickload :engine)' \
-       --eval '(engine:build #P"/var/lib/build/nebula/app/engine/")'
+  sbcl --eval '(ql:quickload :streams)' \
+       --eval '(streams:build #P"/var/lib/build/nebula/app/streams/")'
 }
 
 function create_temp_dir () {
@@ -178,12 +178,12 @@ function create_temp_dir () {
   OPT_TEMP_DIR=$(mktemp -d)
 }
 
-function fetch_remote_engine_binaries () {
-  debug fetch_remote_engine_binaries "$@"
+function fetch_remote_streams_binaries () {
+  debug fetch_remote_streams_binaries "$@"
 
   local OIFS=${IFS}
   local dir=${OPT_TEMP_DIR}
-  local repo=themimixcompany/engine
+  local repo=themimixcompany/streams
   local ver=latest
 
   IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
@@ -192,10 +192,10 @@ function fetch_remote_engine_binaries () {
 
   for a in ${ARCHS[@]}; do
     case ${a} in
-      linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_LINUX} ${ver} ;;
-      windows) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_WINDOWS} ${ver} ;;
-      macos) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_ENGINE_MACOS} ${ver} ;;
-      *) warn "No matching engines found. Skipping."; return 0 ;;
+      linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_STREAMS_LINUX} ${ver} ;;
+      windows) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_STREAMS_WINDOWS} ${ver} ;;
+      macos) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_STREAMS_MACOS} ${ver} ;;
+      *) warn "No matching streamss found. Skipping."; return 0 ;;
     esac
   done
 
@@ -207,10 +207,10 @@ function fetch_dependencies () {
 
   if [[ "${OPT_SOURCES}" == "github" ]]; then
     fetch_remote_sources
-    fetch_remote_engine_binaries
+    fetch_remote_streams_binaries
   else
     fetch_local_sources
-    fetch_remote_engine_binaries
+    fetch_remote_streams_binaries
   fi
 }
 
@@ -218,9 +218,9 @@ function build_binaries () {
   debug build_binaries "$@"
 
   local OIFS=${IFS}
-  local engine_dir=${OPT_BUILD_DIR}/nebula/app/engine
+  local streams_dir=${OPT_BUILD_DIR}/nebula/app/streams
 
-  make_directory ${engine_dir}
+  make_directory ${streams_dir}
   cd $OPT_BUILD_DIR/nebula
 
   npm install
@@ -230,25 +230,25 @@ function build_binaries () {
   for a in ${ARCHS[@]}; do
     case ${a} in
       linux)
-        cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_LINUX} ${engine_dir}
-        chmod +x ${engine_dir}/${OPT_ENGINE_LINUX}
+        cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_LINUX} ${streams_dir}
+        chmod +x ${streams_dir}/${OPT_STREAMS_LINUX}
         electron-packager . --platform=linux --out=out --icon=assets/icons/icon.png --prune=true
         electron-builder --linux --prepackaged out/${OPT_BASE_NAME}-linux-x64
-        remove ${engine_dir}/${OPT_ENGINE_LINUX}
+        remove ${streams_dir}/${OPT_STREAMS_LINUX}
         ;;
       windows)
-        cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_WINDOWS} ${engine_dir}
-        chmod +x ${engine_dir}/${OPT_ENGINE_WINDOWS}
+        cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_WINDOWS} ${streams_dir}
+        chmod +x ${streams_dir}/${OPT_STREAMS_WINDOWS}
         electron-packager . --platform=win32 --out=out --icon=assets/icons/icon.ico --prune=true
         electron-builder --windows --prepackaged out/${OPT_BASE_NAME}-win32-x64
-        remove ${engine_dir}/${OPT_ENGINE_WINDOWS}
+        remove ${streams_dir}/${OPT_STREAMS_WINDOWS}
         ;;
       macos)
-        cp -v ${OPT_TEMP_DIR}/${OPT_ENGINE_MACOS} ${engine_dir}
-        chmod +x ${engine_dir}/${OPT_ENGINE_MACOS}
+        cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_MACOS} ${streams_dir}
+        chmod +x ${streams_dir}/${OPT_STREAMS_MACOS}
         electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
         #electron-builder --macos --prepackaged out/${OPT_BASE_NAME}-darwin-x64
-        remove ${engine_dir}/${OPT_ENGINE_MACOS}
+        remove ${streams_dir}/${OPT_STREAMS_MACOS}
         ;;
       *) warn "No archs found"; return 1 ;;
     esac
@@ -307,8 +307,8 @@ function create_arch_releases () {
 
         mv ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-        mv ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine
-        chmod +x ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine/engine_*
+        mv ${OPT_TEMP_DIR}/streams_* ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams
+        chmod +x ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams/streams_*
         ;;
       *) warn "No archs found"; return 1;;
     esac
@@ -330,8 +330,8 @@ function create_electron_releases () {
 
   mv ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-  mv ${OPT_TEMP_DIR}/engine_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine
-  chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/engine/engine_*
+  mv ${OPT_TEMP_DIR}/streams_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams
+  chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams/streams_*
 }
 
 function create_zip_releases () {

@@ -89,7 +89,7 @@ OPTIONS:
   -h, --help           Show this help
 
 EXAMPLE:
-  TOKEN=12345 ./${SELF} themimixcompany/engine engine_unix_X64 latest
+  TOKEN=12345 ./${SELF} themimixcompany/streams streams_unix_X64 latest
 EOF
   exit 0
 }
