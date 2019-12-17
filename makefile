@@ -4,6 +4,8 @@ DIR := $(shell basename "$(shell pwd)")
 NAME = nebula-builder
 DOCKERFILE = ./Dockerfile
 
+TAG := $(shell jq '.version' ../nebula/package.json)
+
 ifndef SSH_PRIVATE_KEY
 override SSH_PRIVATE_KEY=${HOME}/.ssh/id_ed25519
 endif
@@ -25,8 +27,8 @@ releases_installers:
 	--volume ${RELEASES}:/var/lib/releases \
 	--env TOKEN=${TOKEN} \
 	--env ARCHS=${ARCHS} \
-	--env TAG=${TAG} \
+	--env TAG=$(TAG) \
 	$(NAME)
 
 macos_installers:
-	RELEASES=${RELEASES} TAG=${TAG} make -C ../nebula clean install macos_package macos_installers
+	RELEASES=${RELEASES} TAG=$(TAG) make -C ../nebula clean install macos_package macos_installers
