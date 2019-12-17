@@ -4,6 +4,14 @@ DIR := $(shell basename "$(shell pwd)")
 NAME = nebula-builder
 DOCKERFILE = ./Dockerfile
 
+ifndef SSH_PRIVATE_KEY
+override SSH_PRIVATE_KEY=${HOME}/.ssh/id_ed25519
+endif
+
+ifndef SSH_PUBLIC_KEY
+override SSH_PUBLIC_KEY=${HOME}/.ssh/id_ed25519.pub
+endif
+
 all: build releases_installers macos_installers
 
 build:
