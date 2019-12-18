@@ -353,14 +353,6 @@ function create_zip_releases () {
   IFS=${OIFS}
 }
 
-function create_releases () {
-  debug create_releases "$@"
-
-  create_arch_releases
-  #create_electron_releases
-  create_zip_releases
-}
-
 function main () {
   debug main "$@"
 
@@ -371,7 +363,8 @@ function main () {
   create_temp_dir
   fetch_dependencies
   build_binaries
-  create_releases
+  create_arch_releases
+  #create_zip_releases
 }
 
 main "$@"
