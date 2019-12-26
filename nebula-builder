@@ -313,9 +313,9 @@ function build_releases () {
         chmod +x ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams/streams_*
         ;;
       docker)
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        docker save -o ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/${OPT_BASE_NAME}.tar ${OPT_BASE_NAME}
-        gzip -vf ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/${OPT_BASE_NAME}.tar
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+        docker save -o ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/${OPT_BASE_NAME}.tar ${OPT_BASE_NAME}
+        gzip -vf9 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/${OPT_BASE_NAME}.tar
         ;;
       *) warn "No targets found"; return 1;;
     esac
