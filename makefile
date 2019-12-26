@@ -16,7 +16,7 @@ MAKEFLAGS += --no-builtin-rules
 # Body
 #-------------------------------------------------------------------------------
 
-.PHONY: all build releases_installers macos_installers
+.PHONY: all build
 
 DIR := $(shell basename "$(shell pwd)")
 NAME = nebula-builder
@@ -32,11 +32,9 @@ ifndef SSH_PUBLIC_KEY
   override SSH_PUBLIC_KEY=${HOME}/.ssh/id_ed25519.pub
 endif
 
-# all: build releases_installers macos_installers
-
-all:
+all: build
   ./dispatcher \
-    --ssh-private_key ${SSH_PRIVATE_KEY} \
+    --ssh-private-key ${SSH_PRIVATE_KEY} \
     --ssh-public-key ${SSH_PUBLIC_KEY} \
     --sources ${SOURCES} \
     --releases ${RELEASES} \
@@ -47,18 +45,3 @@ all:
 
 build:
   docker build -f $(DOCKERFILE) -t $(NAME) .
-
-# releases_installers:
-#   docker run --rm -it \
-#   --mount type=bind,source=${SSH_PRIVATE_KEY},target=/root/.ssh/id_rsa,readonly \
-#   --mount type=bind,source=${SSH_PUBLIC_KEY},target=/root/.ssh/id_rsa.pub,readonly \
-#   --volume ${SOURCES}:/var/lib/sources \
-#   --volume ${RELEASES}:/var/lib/releases \
-#   --env TOKEN=${TOKEN} \
-#   --env TARGETS=${TARGETS} \
-#   --env TAG=$(TAG) \
-#   -v /var/run/docker.sock:/var/run/docker.sock \
-#   $(NAME)
-
-# macos_installers:
-#   RELEASES=${RELEASES} TAG=$(TAG) $(MAKE) -C ../nebula clean install macos_package macos_installers

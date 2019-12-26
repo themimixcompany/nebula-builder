@@ -195,7 +195,6 @@ function fetch_remote_streams_binaries () {
       linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_STREAMS_LINUX} ${ver} ;;
       windows) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_STREAMS_WINDOWS} ${ver} ;;
       macos) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_STREAMS_MACOS} ${ver} ;;
-      *) warn "No matching streams found. Skipping."; return 0 ;;
     esac
   done
 
