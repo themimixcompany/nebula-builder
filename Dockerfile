@@ -13,6 +13,13 @@ RUN apt-get update
 RUN apt-get install -y software-properties-common build-essential
 RUN apt-get install -y curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq rsync zip
 RUN apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
+
+RUN apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+RUN apt-get update
+RUN apt-get install -y docker-ce
+
 RUN add-apt-repository universe
 RUN add-apt-repository restricted
 RUN add-apt-repository multiverse
@@ -47,4 +54,4 @@ COPY ./ssh-run /opt/bin/ssh-run
 COPY ./fetch /opt/bin/fetch
 
 # Entrypoint
-CMD [ "/bin/bash", "-c", "/opt/bin/nebula-builder --build-dir /var/lib/build --sources /var/lib/sources --releases /var/lib/releases --token $TOKEN --archs $ARCHS --tag $TAG" ]
+CMD [ "/bin/bash", "-c", "/opt/bin/nebula-builder --build-dir /var/lib/build --sources /var/lib/sources --releases /var/lib/releases --token $TOKEN --targets $TARGETS --tag $TAG" ]

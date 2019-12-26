@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+
+set -eu
+set -o pipefail
+
+readonly SELF=$(basename "${BASH_SOURCE[0]}")
+readonly OS=$(uname)
+readonly VERSION=0.0.1
+
+OPT_HELP=
+OPT_DEBUG=
+OPT_VERBOSE=
+
+OPT_SSH_PRIVATE_KEY=
+OPT_SSH_PUBLIC_KEY=
+OPT_SOURCES=
+OPT_TOKEN=
+OPT_TARGETS=
+OPT_TAG=
+OPT_NAME=
+
+OPT_MACOS_BUILD=
+
+function error () {
+  if [[ "${OS}" == "Darwin" ]]; then
+    echo "error: ${@}" >&2
+  else
+    echo -e "\e[0;31m\e[1merror: \e[0;0m${@}" >&2
+  fi
+
+  exit 1
+}
+
+function warn () {
+  if [[ "${OS}" == "Darwin" ]]; then
+    echo "warning: ${@}" >&2
+  else
+    echo -e "\e[0;33mwarning: \e[0;0m${@}" >&2
+  fi
+}
+
+function debug () {
+  if [[ -n "${OPT_DEBUG}" ]]; then
+    echo '**'
+    echo \${@}: ${@}
+    echo \$OPT_DEBUG: "${OPT_DEBUG}"
+  fi
+}
+
+function parse_arguments () {
+  debug parse_arguments "$@"
+
+  local opts=$(getopt -n "${SELF}" --options hdvP:p:s:r:o:t:T:n: --longoptions help,debug,verbose,ssh-private-key:,ssh-public-key:,sources:,releases:,token:,targets:,tag:,name: -- "$@")
+
+  if [[ $? != 0 ]]; then
+    error "Failed to parse arguments. Exiting."
+  fi
+
+  eval set -- "${opts}"
+
+  while true; do
+    case "$1" in
+      (-h|--help) OPT_HELP=true; shift ;;
+      (-d|--debug) OPT_DEBUG=true; shift ;;
+      (-v|--verbose) OPT_VERBOSE=true; shift ;;
+
+      (-P|--ssh-private-key) OPT_SSH_PRIVATE_KEY=$2; shift 2 ;;
+      (-p|--ssh-publick-key) OPT_SSH_PUBLIC_KEY=$2; shift 2 ;;
+      (-s|--sources) OPT_SOURCES=$2; shift 2 ;;
+      (-r|--releases) OPT_RELEASES=$2; shift 2 ;;
+      (-o|--token) OPT_TOKEN=$2; shift 2 ;;
+      (-t|--targets) OPT_TARGETS=$2; shift 2 ;;
+      (-T|--tag) OPT_TAG=$2; shift 2 ;;
+      (-n|--name) OPT_NAME=$2; shift 2 ;;
+
+      (--) shift; break ;;
+      (*) break ;;
+    esac
+  done
+}
+
+function process_arguments () {
+  debug process_arguments "$@"
+
+  if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
+    display_usage
+  else
+    return 0
+  fi
+}
+
+function display_usage () {
+  debug display_usage "$@"
+
+  cat << EOF
+${SELF} [OPTIONS]... <COMMAND> [OPTIONS]...
+
+OPTIONS:
+  -h, --help       Show this help
+
+COMMANDS:
+EOF
+  exit 0
+}
+
+function scan_targets () {
+  debug scan_targets "$@"
+
+  local OIFS=${IFS}
+
+  IFS="," read -ra TARGETS <<< "${OPT_TARGETS}"
+
+  for a in ${TARGETS[@]}; do
+    case ${a} in
+      macos) OPT_MACOS_BUILD=1 ;;
+      *) return 0 ;;
+    esac
+  done
+
+  IFS=${OIFS}
+}
+
+function dispatch_builder () {
+  debug dispatch_builder "$@"
+
+  docker run --rm -it \
+    --mount type=bind,source=${OPT_SSH_PRIVATE_KEY},target=/root/.ssh/id_rsa,readonly \
+    --mount type=bind,source=${OPT_SSH_PUBLIC_KEY},target=/root/.ssh/id_rsa.pub,readonly \
+    --volume ${OPT_SOURCES}:/var/lib/sources \
+    --volume ${OPT_RELEASES}:/var/lib/releases \
+    --env TOKEN=${OPT_TOKEN} \
+    --env TARGETS=${OPT_TARGETS} \
+    --env TAG=${OPT_TAG} \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    ${OPT_NAME}
+
+  if [[ -n "${OPT_MACOS_BUILD}" && -d "../nebula" ]]; then
+    RELEASES=${OPT_RELEASES} TAG=${OPT_TAG} \
+      make -C ../nebula clean install macos_package macos_installers
+  fi
+}
+
+function main () {
+  debug main "$@"
+
+  parse_arguments "$@"
+  process_arguments "$@"
+
+  scan_targets
+  dispatch_builder "$@"
+}
+
+main "$@"

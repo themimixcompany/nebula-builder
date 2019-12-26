@@ -23,7 +23,7 @@ OPT_STREAMS_LINUX=streams_unix_X64
 OPT_STREAMS_WINDOWS=streams_windows_X64.exe
 OPT_STREAMS_MACOS=streams_macos_X64
 
-OPT_ARCHS=
+OPT_TARGETS=
 OPT_BUILD_DIR=
 OPT_SOURCES=
 OPT_RELEASES=
@@ -59,7 +59,7 @@ function debug () {
 function parse_arguments () {
   debug parse_arguments "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hdva:b:s:r:t:T: --longoptions help,debug,verbose,archs:,build-dir:,sources:,releases:,token:,tag: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hdvt:b:s:r:o:T: --longoptions help,debug,verbose,targets:,build-dir:,sources:,releases:,token:,tag: -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -72,11 +72,11 @@ function parse_arguments () {
       (-h|--help) OPT_HELP=true; shift ;;
       (-d|--debug) OPT_DEBUG=true; shift ;;
       (-v|--verbose) OPT_VERBOSE=true; shift ;;
-      (-a|--archs) OPT_ARCHS=$2; shift 2 ;;
+      (-t|--targets) OPT_TARGETS=$2; shift 2 ;;
       (-b|--build-dir) OPT_BUILD_DIR=$2; shift 2 ;;
       (-s|--sources) OPT_SOURCES=$2; shift 2 ;;
       (-r|--releases) OPT_RELEASES=$2; shift 2 ;;
-      (-t|--token) OPT_TOKEN=$2; shift 2 ;;
+      (-o|--token) OPT_TOKEN=$2; shift 2 ;;
       (-T|--tag) OPT_TAG=$2; shift 2 ;;
       (--) shift; break ;;
       (*) break ;;
@@ -89,7 +89,7 @@ function process_arguments () {
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
-  elif [[ -z "${OPT_ARCHS}" || -z "${OPT_BUILD_DIR}" ||
+  elif [[ -z "${OPT_TARGETS}" || -z "${OPT_BUILD_DIR}" ||
             -z "${OPT_SOURCES}" || -z "${OPT_RELEASES}" ||
             -z "${OPT_TAG}" ]]; then
     display_usage
@@ -108,11 +108,11 @@ OPTIONS:
   -h, --help       Show this help
 
 COMMANDS:
-  -a, --archs      Comma-separated list of target architectures (default: ${OPT_ARCHS})
+  -t, --targets    Comma-separated list of targets (default: ${OPT_TARGETS})
   -b, --build-dir  Location for internal building (default: ${OPT_BUILD_DIR})
   -s, --sources    Location where to get the dependencies (default: ${OPT_SOURCES})
   -r, --releases   Location where to create the releases (default: ${OPT_RELEASES})
-  -t, --token      The GitHub authentication token (default: none)
+  -o, --token      The GitHub authentication token (default: none)
   -T, --tag        The name/version of a release (default: none)
 EOF
   exit 0
@@ -186,11 +186,11 @@ function fetch_remote_streams_binaries () {
   local repo=themimixcompany/streams
   local ver=latest
 
-  IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+  IFS="," read -ra TARGETS <<< "${OPT_TARGETS}"
 
   cd ${dir}
 
-  for a in ${ARCHS[@]}; do
+  for a in ${TARGETS[@]}; do
     case ${a} in
       linux) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_STREAMS_LINUX} ${ver} ;;
       windows) TOKEN=${OPT_TOKEN} /opt/bin/fetch ${repo} ${OPT_STREAMS_WINDOWS} ${ver} ;;
@@ -223,13 +223,12 @@ function build_binaries () {
   make_directory ${streams_dir}
   cd $OPT_BUILD_DIR/nebula
 
-  npm install
+  IFS="," read -ra TARGETS <<< "${OPT_TARGETS}"
 
-  IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
-
-  for a in ${ARCHS[@]}; do
+  for a in ${TARGETS[@]}; do
     case ${a} in
       linux)
+        npm install
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_LINUX} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_LINUX}
         electron-packager . --platform=linux --out=out --icon=assets/icons/icon.png --prune=true
@@ -237,6 +236,7 @@ function build_binaries () {
         remove ${streams_dir}/${OPT_STREAMS_LINUX}
         ;;
       windows)
+        npm install
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_WINDOWS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_WINDOWS}
         electron-packager . --platform=win32 --out=out --icon=assets/icons/icon.ico --prune=true
@@ -244,57 +244,60 @@ function build_binaries () {
         remove ${streams_dir}/${OPT_STREAMS_WINDOWS}
         ;;
       macos)
+        npm install
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_MACOS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_MACOS}
         electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
         #electron-builder --macos --prepackaged out/${OPT_BASE_NAME}-darwin-x64
         remove ${streams_dir}/${OPT_STREAMS_MACOS}
         ;;
-      *) warn "No archs found"; return 1 ;;
+      electron)
+        npm install
+        return 0
+        ;;
+      docker)
+        cd ${OPT_BUILD_DIR}/${OPT_BASE_NAME}
+        docker build -t ${OPT_BASE_NAME} .
+        ;;
+      *) warn "No targets found"; return 1 ;;
     esac
   done
 
   IFS=${OIFS}
 }
 
-function create_arch_releases () {
-  debug create_arch_releases "$@"
+function build_releases () {
+  debug build_releases "$@"
 
   local OIFS=${IFS}
   local out=${OPT_BUILD_DIR}/nebula/out
 
-  IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+  IFS="," read -ra TARGETS <<< "${OPT_TARGETS}"
 
-  for a in ${ARCHS[@]} electron; do
+  for a in ${TARGETS[@]}; do
     case ${a} in
       linux)
-        # electron-builder
         remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         mv ${out}/${OPT_BASE_NAME}-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-        # electron-packager
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         [[ -f ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ]] && mv ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         [[ -f ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]] && mv ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
       windows)
-        # electron-builder
         remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         mv ${out}/${OPT_BASE_NAME}-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-        # electron-packager
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         [[ -f ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]] && mv ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
       macos)
-        # electron-builder
         remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         mv ${out}/${OPT_BASE_NAME}-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
-        # electron-packager
         ;;
       electron)
         remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
@@ -310,28 +313,16 @@ function create_arch_releases () {
         mv ${OPT_TEMP_DIR}/streams_* ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams
         chmod +x ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams/streams_*
         ;;
-      *) warn "No archs found"; return 1;;
+      docker)
+        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        docker save -o ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/${OPT_BASE_NAME}.tar ${OPT_BASE_NAME}
+        gzip -vf ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/${OPT_BASE_NAME}.tar
+        ;;
+      *) warn "No targets found"; return 1;;
     esac
   done
 
   IFS=${OIFS}
-}
-
-function create_electron_releases () {
-  debug create_electron_releases "$@"
-
-  remove ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
-
-  remove ${OPT_BUILD_DIR}/nebula/.git
-  remove ${OPT_BUILD_DIR}/nebula/.gitignore
-  remove ${OPT_BUILD_DIR}/nebula/out
-
-  make_directory ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"
-
-  mv ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app
-
-  mv ${OPT_TEMP_DIR}/streams_* ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams
-  chmod +x ${OPT_RELEASES}/electron/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams/streams_*
 }
 
 function create_zip_releases () {
@@ -339,9 +330,9 @@ function create_zip_releases () {
 
   local OIFS=${IFS}
 
-  IFS="," read -ra ARCHS <<< "${OPT_ARCHS}"
+  IFS="," read -ra TARGETS <<< "${OPT_TARGETS}"
 
-  for a in ${ARCHS[@]} electron; do
+  for a in ${TARGETS[@]}; do
     if [[ -d ${OPT_RELEASES}/${a} ]]; then
       make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/zips
       cd ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
@@ -363,7 +354,7 @@ function main () {
   create_temp_dir
   fetch_dependencies
   build_binaries
-  create_arch_releases
+  build_releases
   #create_zip_releases
 }
 

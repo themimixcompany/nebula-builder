@@ -60,7 +60,7 @@ docker run --rm -it \
 --volume ${SOURCES}:/var/lib/sources \
 --volume ${RELEASES}:/var/lib/releases \
 --env TOKEN=${TOKEN} \
---env ARCHS=${ARCHS} \
+--env TARGETS=${TARGETS} \
 --env TAG=${TAG} \
 nebula-builder
 ```
@@ -74,7 +74,7 @@ docker run --rm -it \
 --volume $HOME/mimix/src:/var/lib/sources \
 --volume $HOME/mimix/releases:/var/lib/releases \
 --env TOKEN=4a386c297c7c53a4f8ea01d9e9e947312cd645d1 \
---env ARCHS=linux,windows,macos \
+--env TARGETS=linux,windows,macos \
 --env TAG=1.0.8 \
 nebula-builder
 ```
