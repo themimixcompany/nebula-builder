@@ -2,7 +2,7 @@ FROM ubuntu:bionic
 
 # Metadata
 LABEL maintainer="rom@mimix.io"
-LABEL version="0.0.5"
+LABEL version="1.0.1"
 LABEL description="Dockerfile for Nebula"
 
 # Environment
@@ -42,7 +42,7 @@ RUN npm install -g electron-builder
 # Lisp
 RUN mkdir -p ~/bin ~/common-lisp
 RUN git clone https://gitlab.common-lisp.net/asdf/asdf.git ~/common-lisp/asdf
-RUN git clone https://github.com/ebzzry/mof ~/common-lisp/mof
+RUN git clone https://github.com/ebzzry/marie ~/common-lisp/marie
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp
 RUN sbcl --noinform --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --eval '(let ((ql-util::*do-not-prompt* t)) (ql:add-to-init-file) (sb-ext:exit))'
 RUN rm -f quicklisp.lisp 2>&1 /dev/null
