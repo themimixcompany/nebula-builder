@@ -133,7 +133,7 @@ function dispatch_builder () {
 
   [[ -n "${OPT_MACOS_BUILD}" && -d "../nebula" ]] &&
     RELEASES=${OPT_RELEASES} TAG=${OPT_TAG} \
-    make -C ../nebula clean install macos_package macos_installers
+    make -C ../nebula build clean install macos_package macos_installers
 }
 
 function main () {
