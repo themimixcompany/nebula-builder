@@ -31,17 +31,19 @@ If you have the tarball, you can load it with:
 
     docker load -i nebula-builder.tar.gz
 
-If you don't have a pre-built Docker image, you can create one from a repo
-(cloned to your local drive from GitHub, for example) that contains the
-Dockerfile. To do so, run:
+If you don't have a pre-built Docker image, you can create one by cloning this repo:
+
+    git clone https://github.com/themimixcompany/nebula-builder
+
+then, run:
 
     docker build -t nebula-builder .
 
-In either case, you may check its existence with the following command:
+Then, verify that the image has been built with:
 
     docker images
 
-If you can see `nebula-builder` in the list, then we’re good to go.
+If you can see `nebula-builder` in the list, we’re good to go.
 
 
 ### <a name="github">GitHub Access</a>
