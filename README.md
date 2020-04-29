@@ -7,11 +7,12 @@ nebula-builder
 
 - [Overview](#overview)
 - [Setup](#setup)
-  + [Docker Image](#docker)
-  + [GitHub Access](#github)
+  + [Docker image](#docker)
+  + [GitHub access](#github)
 - [Building](#building)
   + [Paths](#paths)
-  + [Builder](#builder)
+  + [Manual build](#manualbuild)
+  + [Make build](#makebuild)
 
 
 <a name="overview">Overview</a>
@@ -87,9 +88,11 @@ If you can see `nebula-builder` in the list, we’re good to go.
    final output folder name. Call it `${TAG}`.
 
 
-### <a name="builder">Builder</a>
+### <a name="manualbuild">Manual build</a>
 
-A template showing where to place all these named variables looks like this:
+In order to build Nebula, we need to run the Docker image, with specific
+parameters.  A template showing where to place all these named variables looks
+like this:
 
 ```bash
 docker run --rm -it \
@@ -145,3 +148,21 @@ structure like the following:
 ```
 
 Where `1.0.0` contains the binaries for the corresponding target.
+
+
+### <a name="makebuild">Make build</a>
+
+Another way to run the builder is through the use of make. The makefile that
+accompanies this document contains the necessary instructions in order to build
+Nebula for Linux, Windows, and macOS.
+
+To run the make builder, run:
+
+```bash
+SOURCES=$HOME/src RELEASES=$HOME/releases TOKEN=a386c27c7c53a44f8ea019e9e9473d12cd6459d0 TARGETS=linux,windows,macos,electron,docker make
+```
+
+`SOURCES` points to the directory containing the sources for nebula, and other
+dependencies. `RELEASES` points to a directory where the binary releases will be
+saved. `TOKEN` is the 40-digit GitHub access token. `TARGETS` is a
+comma-separated list of build targets.
