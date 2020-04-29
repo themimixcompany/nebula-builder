@@ -12,6 +12,7 @@ OPT_DEBUG=
 OPT_VERBOSE=
 
 readonly OPT_BASE_NAME="nebula"
+readonly OPT_PRODUCT_NAME="Mimix Nebula"
 
 readonly OPT_ELECTRON=git@github.com:themimixcompany/nebula.git
 readonly OPT_WORLD=git@github.com:themimixcompany/local-world.git
@@ -231,7 +232,7 @@ function build_binaries () {
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_LINUX} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_LINUX}
         electron-packager . --platform=linux --out=out --icon=assets/icons/icon.png --prune=true
-        electron-builder --linux --prepackaged out/${OPT_BASE_NAME}-linux-x64
+        electron-builder --linux --prepackaged out/"${OPT_PRODUCT_NAME}"-linux-x64
         remove ${streams_dir}/${OPT_STREAMS_LINUX}
         ;;
       windows)
@@ -239,7 +240,7 @@ function build_binaries () {
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_WINDOWS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_WINDOWS}
         electron-packager . --platform=win32 --out=out --icon=assets/icons/icon.ico --prune=true
-        electron-builder --windows --prepackaged out/${OPT_BASE_NAME}-win32-x64
+        electron-builder --windows --prepackaged out/"${OPT_PRODUCT_NAME}"-win32-x64
         remove ${streams_dir}/${OPT_STREAMS_WINDOWS}
         ;;
       macos)
@@ -247,7 +248,7 @@ function build_binaries () {
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_MACOS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_MACOS}
         electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
-        #electron-builder --macos --prepackaged out/${OPT_BASE_NAME}-darwin-x64
+        #electron-builder --macos --prepackaged out/"${OPT_PRODUCT_NAME}"-darwin-x64
         remove ${streams_dir}/${OPT_STREAMS_MACOS}
         ;;
       electron)
@@ -278,16 +279,16 @@ function build_releases () {
       linux)
         remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        mv ${out}/${OPT_BASE_NAME}-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+        mv ${out}/"${OPT_PRODUCT_NAME}"-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
-        [[ -f ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ]] && mv ${out}/"${OPT_BASE_NAME}-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+        [[ -f ${out}/""${OPT_PRODUCT_NAME}"-${OPT_TAG}.AppImage" ]] && mv ${out}/""${OPT_PRODUCT_NAME}"-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         [[ -f ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]] && mv ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
       windows)
         remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        mv ${out}/${OPT_BASE_NAME}-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+        mv ${out}/"${OPT_PRODUCT_NAME}"-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         [[ -f ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]] && mv ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
@@ -295,7 +296,7 @@ function build_releases () {
       macos)
         remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        mv ${out}/${OPT_BASE_NAME}-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+        mv ${out}/"${OPT_PRODUCT_NAME}"-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
         ;;
       electron)
@@ -335,8 +336,8 @@ function create_zip_releases () {
     if [[ -d ${OPT_RELEASES}/${a} ]]; then
       make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/zips
       cd ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-      remove zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip
-      zip -r zips/${a}-${OPT_BASE_NAME}-"${OPT_TAG}".zip app
+      remove zips/${a}-"${OPT_PRODUCT_NAME}"-"${OPT_TAG}".zip
+      zip -r zips/${a}-"${OPT_PRODUCT_NAME}"-"${OPT_TAG}".zip app
     fi
   done
 

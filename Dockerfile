@@ -3,7 +3,7 @@ FROM ubuntu:bionic
 # Set metadata
 LABEL maintainer="The Mimix Company <code@mimix.io>"
 LABEL version="1.0.1"
-LABEL description="Dockerfile for nebula-builder"
+LABEL description="Dockerfile for Nebula builder"
 
 # Set environment
 ENV DEBIAN_FRONTEND=noninteractive
