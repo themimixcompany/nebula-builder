@@ -325,25 +325,6 @@ function build_releases () {
   IFS=${OIFS}
 }
 
-function create_zip_releases () {
-  debug create_zip_releases "$@"
-
-  local OIFS=${IFS}
-
-  IFS="," read -ra TARGETS <<< "${OPT_TARGETS}"
-
-  for a in ${TARGETS[@]}; do
-    if [[ -d ${OPT_RELEASES}/${a} ]]; then
-      make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/zips
-      cd ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-      remove zips/${a}-"${OPT_PRODUCT_NAME}"-"${OPT_TAG}".zip
-      zip -r zips/${a}-"${OPT_PRODUCT_NAME}"-"${OPT_TAG}".zip app
-    fi
-  done
-
-  IFS=${OIFS}
-}
-
 function main () {
   debug main "$@"
 
@@ -355,7 +336,6 @@ function main () {
   fetch_dependencies
   build_binaries
   build_releases
-  #create_zip_releases
 }
 
 main "$@"
