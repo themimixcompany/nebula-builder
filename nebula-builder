@@ -282,7 +282,7 @@ function build_releases () {
         mv ${out}/"${OPT_PRODUCT_NAME}"-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
 
         make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
-        [[ -f ${out}/""${OPT_PRODUCT_NAME}"-${OPT_TAG}.AppImage" ]] && mv ${out}/""${OPT_PRODUCT_NAME}"-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+        [[ -f ${out}/"${OPT_PRODUCT_NAME}"-${OPT_TAG}.AppImage" ]] && mv ${out}/"${OPT_PRODUCT_NAME}"-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         [[ -f ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]] && mv ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
         ;;
       windows)
