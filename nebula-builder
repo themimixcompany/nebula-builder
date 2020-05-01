@@ -248,8 +248,6 @@ function build_binaries () {
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_MACOS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_MACOS}
         electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
-        #electron-builder --macos --prepackaged "out/${OPT_PRODUCT_NAME}-darwin-x64"
-        remove ${streams_dir}/${OPT_STREAMS_MACOS}
         ;;
       electron)
         npm install
@@ -283,7 +281,6 @@ function build_releases () {
 
         make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
         [[ -f "${out}/${OPT_PRODUCT_NAME}-${OPT_TAG}.AppImage" ]] && mv "${out}/${OPT_PRODUCT_NAME}-${OPT_TAG}.AppImage" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
-        [[ -f "${out}/${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]] && mv "${out}/${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
         ;;
       windows)
         remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
@@ -294,7 +291,7 @@ function build_releases () {
         [[ -f "${out}/${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]] && mv "${out}/${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
         ;;
       macos)
-        true
+        return 0
         ;;
       electron)
         remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
@@ -332,7 +329,7 @@ function main () {
   create_temp_dir
   fetch_dependencies
   build_binaries
-  #build_releases
+  build_releases
 }
 
 main "$@"
