@@ -294,9 +294,7 @@ function build_releases () {
         [[ -f "${out}/${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]] && mv "${out}/${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
         ;;
       macos)
-        remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
-        make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
-        mv "${out}/${OPT_PRODUCT_NAME}-darwin-x64" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
+        true
         ;;
       electron)
         remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
