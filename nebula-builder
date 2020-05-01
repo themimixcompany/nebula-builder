@@ -232,7 +232,7 @@ function build_binaries () {
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_LINUX} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_LINUX}
         electron-packager . --platform=linux --out=out --icon=assets/icons/icon.png --prune=true
-        electron-builder --linux --prepackaged out/"${OPT_PRODUCT_NAME}"-linux-x64
+        electron-builder --linux --prepackaged "out/${OPT_PRODUCT_NAME}-linux-x64"
         remove ${streams_dir}/${OPT_STREAMS_LINUX}
         ;;
       windows)
@@ -240,7 +240,7 @@ function build_binaries () {
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_WINDOWS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_WINDOWS}
         electron-packager . --platform=win32 --out=out --icon=assets/icons/icon.ico --prune=true
-        electron-builder --windows --prepackaged out/"${OPT_PRODUCT_NAME}"-win32-x64
+        electron-builder --windows --prepackaged "out/${OPT_PRODUCT_NAME}-win32-x64"
         remove ${streams_dir}/${OPT_STREAMS_WINDOWS}
         ;;
       macos)
@@ -248,7 +248,7 @@ function build_binaries () {
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_MACOS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_MACOS}
         electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
-        #electron-builder --macos --prepackaged out/"${OPT_PRODUCT_NAME}"-darwin-x64
+        #electron-builder --macos --prepackaged "out/${OPT_PRODUCT_NAME}-darwin-x64"
         remove ${streams_dir}/${OPT_STREAMS_MACOS}
         ;;
       electron)
@@ -277,46 +277,45 @@ function build_releases () {
   for a in ${TARGETS[@]}; do
     case ${a} in
       linux)
-        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        mv ${out}/"${OPT_PRODUCT_NAME}"-linux-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+        remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
+        make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
+        mv "${out}/${OPT_PRODUCT_NAME}-linux-x64" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
 
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
-        [[ -f ${out}/"${OPT_PRODUCT_NAME}"-${OPT_TAG}.AppImage" ]] && mv ${out}/"${OPT_PRODUCT_NAME}"-${OPT_TAG}.AppImage" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
-        [[ -f ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]] && mv ${out}/"${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+        make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
+        [[ -f "${out}/${OPT_PRODUCT_NAME}-${OPT_TAG}.AppImage" ]] && mv "${out}/${OPT_PRODUCT_NAME}-${OPT_TAG}.AppImage" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
+        [[ -f "${out}/${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" ]] && mv "${out}/${OPT_BASE_NAME}_${OPT_TAG}_amd64.deb" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
         ;;
       windows)
-        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        mv ${out}/"${OPT_PRODUCT_NAME}"-win32-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+        remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
+        make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
+        mv "${out}/${OPT_PRODUCT_NAME}-win32-x64" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
 
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
-        [[ -f ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]] && mv ${out}/"${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/installers
+        make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
+        [[ -f "${out}/${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" ]] && mv "${out}/${OPT_BASE_NAME} Setup ${OPT_TAG}.exe" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
         ;;
       macos)
-        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
-        mv ${out}/"${OPT_PRODUCT_NAME}"-darwin-x64 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
-
+        remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
+        make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
+        mv "${out}/${OPT_PRODUCT_NAME}-darwin-x64" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
         ;;
       electron)
-        remove ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
 
         remove ${OPT_BUILD_DIR}/nebula/.git
         remove ${OPT_BUILD_DIR}/nebula/.gitignore
         remove ${OPT_BUILD_DIR}/nebula/out
 
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"
+        make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
 
-        mv ${OPT_BUILD_DIR}/nebula ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
+        mv "${OPT_BUILD_DIR}/nebula" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
 
-        mv ${OPT_TEMP_DIR}/streams_* ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams
-        chmod +x ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/app/streams/streams_*
+        mv "${OPT_TEMP_DIR}/streams_*" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/app/streams"
+        chmod +x "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/app/streams/streams_*"
         ;;
       docker)
-        make_directory ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app
-        docker save -o ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/${OPT_BASE_NAME}.tar ${OPT_BASE_NAME}
-        gzip -vf9 ${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/"${OPT_TAG}"/app/${OPT_BASE_NAME}.tar
+        make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
+        docker save -o "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_BASE_NAME}.tar" "${OPT_BASE_NAME}"
+        gzip -vf9 "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_BASE_NAME}.tar"
         ;;
       *) warn "No targets found"; return 1;;
     esac
@@ -335,7 +334,7 @@ function main () {
   create_temp_dir
   fetch_dependencies
   build_binaries
-  build_releases
+  #build_releases
 }
 
 main "$@"
