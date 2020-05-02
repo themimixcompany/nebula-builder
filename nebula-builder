@@ -214,6 +214,18 @@ function fetch_dependencies () {
   fi
 }
 
+function package () {
+  local platform=$1
+  local icon=$2
+  electron-packager . --platform="${platform}" --out=out --icon=assets/icons/"${icon}" --prune=true
+}
+
+function build () {
+  local platform=$1
+
+  electron-builder --"${platform}" --prepackaged "out/${OPT_PRODUCT_NAME}-${platform}-x64"
+}
+
 function build_binaries () {
   debug build_binaries "$@"
 
@@ -231,23 +243,23 @@ function build_binaries () {
         npm install
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_LINUX} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_LINUX}
-        electron-packager . --platform=linux --out=out --icon=assets/icons/icon.png --prune=true
-        electron-builder --linux --prepackaged "out/${OPT_PRODUCT_NAME}-linux-x64"
+        package linux icon.png
+        build linux
         remove ${streams_dir}/${OPT_STREAMS_LINUX}
         ;;
       windows)
         npm install
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_WINDOWS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_WINDOWS}
-        electron-packager . --platform=win32 --out=out --icon=assets/icons/icon.ico --prune=true
-        electron-builder --windows --prepackaged "out/${OPT_PRODUCT_NAME}-win32-x64"
+        package win32 icon.ico
+        build win32
         remove ${streams_dir}/${OPT_STREAMS_WINDOWS}
         ;;
       macos)
         npm install
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_MACOS} ${streams_dir}
         chmod +x ${streams_dir}/${OPT_STREAMS_MACOS}
-        electron-packager . --platform=darwin --out=out --icon=assets/icons/icon.icns --prune=true
+        package darwin icon.icns
         ;;
       electron)
         npm install
