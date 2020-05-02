@@ -280,7 +280,7 @@ function build_releases () {
         mv "${out}/${OPT_PRODUCT_NAME}-linux-x64" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
 
         make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
-        [[ -f "${out}/${OPT_PRODUCT_NAME}-${OPT_TAG}.AppImage" ]] && mv "${out}/${OPT_PRODUCT_NAME}-${OPT_TAG}.AppImage" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
+        move "${out}/${OPT_PRODUCT_NAME}-${OPT_TAG}.AppImage" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
         ;;
       windows)
         remove "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}"
@@ -288,7 +288,7 @@ function build_releases () {
         mv "${out}/${OPT_PRODUCT_NAME}-win32-x64" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
 
         make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
-        [[ -f "${out}/${OPT_PRODUCT_NAME} Setup ${OPT_TAG}.exe" ]] && mv "${out}/${OPT_PRODUCT_NAME} Setup ${OPT_TAG}.exe" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
+        move "${out}/${OPT_PRODUCT_NAME} Setup ${OPT_TAG}.exe" "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/installers"
         ;;
       macos)
         return 0
