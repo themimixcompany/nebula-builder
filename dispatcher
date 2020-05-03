@@ -48,7 +48,7 @@ function debug () {
 }
 
 function parse_arguments () {
-  debug parse_arguments "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   local opts=$(getopt -n "${SELF}" --options hdvp:P:t:b:s:r:o:T:n: --longoptions help,debug,verbose,ssh-private-key:,ssh-public-key:,targets:,build-dir:,sources:,releases:,token:,tag:,name: -- "$@")
 
@@ -78,7 +78,7 @@ function parse_arguments () {
 }
 
 function process_arguments () {
-  debug process_arguments "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
@@ -88,7 +88,7 @@ function process_arguments () {
 }
 
 function display_usage () {
-  debug display_usage "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   cat << EOF
 ${SELF} [OPTIONS]... <COMMAND> [OPTIONS]...
@@ -102,7 +102,7 @@ EOF
 }
 
 function scan_targets () {
-  debug scan_targets "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   local OIFS=${IFS}
 
@@ -118,7 +118,7 @@ function scan_targets () {
 }
 
 function dispatch_builder () {
-  debug dispatch_builder "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   docker run --rm -it \
     --mount type=bind,source=${OPT_SSH_PRIVATE_KEY},target=/root/.ssh/id_rsa,readonly \
@@ -137,7 +137,7 @@ function dispatch_builder () {
 }
 
 function main () {
-  debug main "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   parse_arguments "$@"
   process_arguments "$@"

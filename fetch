@@ -46,7 +46,7 @@ function debug () {
 }
 
 function parse_arguments () {
-  debug parse_arguments "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   local opts=$(getopt -n "${SELF}" --options hdv --longoptions help,debug,verbose -- "$@")
 
@@ -66,7 +66,7 @@ function parse_arguments () {
 }
 
 function process_arguments () {
-  debug process_arguments "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
@@ -79,7 +79,7 @@ function process_arguments () {
 }
 
 function display_usage () {
-  debug display_usage "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   cat << EOF
 USAGE:
@@ -95,7 +95,7 @@ EOF
 }
 
 function check_token () {
-  debug check_token "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   if [[ -z "$TOKEN" ]]; then
     echo "TOKEN not set. Exiting."
@@ -104,13 +104,13 @@ function check_token () {
 }
 
 function gh_curl () {
-  debug gh_curl "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   curl -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3.raw" $@
 }
 
 function set_parser () {
-  debug set_parser "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   if [[ "$VER" = "latest" ]]; then
     PARSER=".[0].assets | map(select(.name == \"$FILE\"))[0].id"
@@ -120,7 +120,7 @@ function set_parser () {
 }
 
 function set_asset_id () {
-  debug set_asset_id "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   ASSET_ID=`gh_curl -s $API/repos/$REPO/releases | jq "$PARSER"`
 
@@ -131,7 +131,7 @@ function set_asset_id () {
 }
 
 function fetch_component () {
-  debug fetch_components "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   wget --auth-no-challenge --header='Accept:application/octet-stream' \
        https://$TOKEN:@api.github.com/repos/$REPO/releases/assets/$ASSET_ID \
@@ -139,7 +139,7 @@ function fetch_component () {
 }
 
 function main () {
-  debug main "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   parse_arguments "$@"
   process_arguments "$@"

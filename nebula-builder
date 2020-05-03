@@ -58,7 +58,7 @@ function debug () {
 }
 
 function parse_arguments () {
-  debug parse_arguments "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   local opts=$(getopt -n "${SELF}" --options hdvt:b:s:r:o:T: --longoptions help,debug,verbose,targets:,build-dir:,sources:,releases:,token:,tag: -- "$@")
 
@@ -86,7 +86,7 @@ function parse_arguments () {
 }
 
 function process_arguments () {
-  debug process_arguments "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
@@ -100,7 +100,7 @@ function process_arguments () {
 }
 
 function display_usage () {
-  debug display_usage "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   cat << EOF
 ${SELF} [OPTIONS]... <COMMAND> [OPTIONS]...
@@ -120,20 +120,20 @@ EOF
 }
 
 function make_directory () {
-  debug make_directory "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   mkdir -p "$@"
 }
 
 function ensure_directories () {
-  debug ensure_directories "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   make_directory "${OPT_BUILD_DIR}"
   make_directory "${OPT_RELEASES}"
 }
 
 function remove () {
-  debug remove "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   if [[ -e "$@" ]]; then
     rm -rv "$@"
@@ -141,46 +141,46 @@ function remove () {
 }
 
 function move () {
-  debug move "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   [[ $# == 2 && -e "$1" ]] && mv "$1" "$2"
 }
 
 function fetch_remote_sources () {
-  debug fetch_remote_sources "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   /opt/bin/ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/nebula"
   /opt/bin/ssh-run "git clone $OPT_WORLD $OPT_BUILD_DIR/nebula/app/world"
 }
 
 function fetch_local_sources () {
-  debug fetch_local_sources "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   git clone ${OPT_SOURCES}/nebula ${OPT_BUILD_DIR}/nebula
   git clone ${OPT_SOURCES}/local-world ${OPT_BUILD_DIR}/nebula/app/world
 }
 
 function fetch_remote_streams_sources () {
-  debug fetch_remote_streams_sources "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   /opt/bin/ssh-run "git clone $OPT_STREAMS /root/common-lisp/streams"
 }
 
 function build_streams () {
-  debug build_streams "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   sbcl --eval '(ql:quickload :streams)' \
        --eval '(streams:build #P"/var/lib/build/nebula/app/streams/")'
 }
 
 function create_temp_dir () {
-  debug create_temp_dir "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   OPT_TEMP_DIR=$(mktemp -d)
 }
 
 function fetch_remote_streams_binaries () {
-  debug fetch_remote_streams_binaries "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   local OIFS=${IFS}
   local dir=${OPT_TEMP_DIR}
@@ -203,7 +203,7 @@ function fetch_remote_streams_binaries () {
 }
 
 function fetch_dependencies () {
-  debug fetch_dependencies "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   if [[ "${OPT_SOURCES}" == "github" ]]; then
     fetch_remote_sources
@@ -227,7 +227,7 @@ function build () {
 }
 
 function build_binaries () {
-  debug build_binaries "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   local OIFS=${IFS}
   local streams_dir=${OPT_BUILD_DIR}/nebula/app/streams
@@ -277,7 +277,7 @@ function build_binaries () {
 }
 
 function build_releases () {
-  debug build_releases "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   local OIFS=${IFS}
   local out=${OPT_BUILD_DIR}/nebula/out
@@ -332,7 +332,7 @@ function build_releases () {
 }
 
 function main () {
-  debug main "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   parse_arguments "$@"
   process_arguments "$@"

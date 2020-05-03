@@ -40,7 +40,7 @@ function debug () {
 }
 
 function parse_arguments () {
-  debug parse_arguments "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   local opts=$(getopt -n "${SELF}" --options hdv --longoptions help,debug,verbose -- "$@")
 
@@ -60,7 +60,7 @@ function parse_arguments () {
 }
 
 function process_arguments () {
-  debug process_arguments "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
@@ -70,7 +70,7 @@ function process_arguments () {
 }
 
 function display_usage () {
-  debug display_usage "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   cat << EOF
 ${SELF} [OPTIONS]... <COMMAND> [OPTIONS]...
@@ -84,13 +84,13 @@ EOF
 }
 
 function launch_agent () {
-  debug launch_agent "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   ssh-agent bash -c "ssh-add /root/.ssh/id_rsa; $@"
 }
 
 function main () {
-  debug main "$@"
+  debug ${FUNCNAME[0]} "$@"
 
   parse_arguments "$@"
   process_arguments "$@"
