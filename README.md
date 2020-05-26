@@ -18,9 +18,7 @@ nebula-builder
 <a name="overview">Overview</a>
 -------------------------------
 
-nebula-builder is the toplevel code for building Nebula from different software
-components. The nebula-builder is run inside a Docker container in order to
-provide consistency and reproducibility.
+nebula-builder is the toplevel code for building Nebula from different software components. The nebula-builder is run inside a Docker container in order to provide consistency and reproducibility.
 
 
 <a name="setup">Setup</a>
