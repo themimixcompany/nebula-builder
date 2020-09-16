@@ -347,8 +347,8 @@ function build_releases () {
         ;;
       docker)
         make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
-        docker save -o "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_PRODUCT_NAME}.docker.tar" "${OPT_BASE_NAME}"
-        gzip -vf9 "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_PRODUCT_NAME}.docker.tar"
+        docker save -o "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_PRODUCT_NAME}-${OPT_TAG}.docker.tar" "${OPT_BASE_NAME}"
+        gzip -vf9 "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_PRODUCT_NAME}-${OPT_TAG}.docker.tar"
         ;;
       *) warn "No targets found"; return 1;;
     esac
