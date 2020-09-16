@@ -202,6 +202,28 @@ function fetch_remote_streams_binaries () {
   IFS=${OIFS}
 }
 
+function fetch_local_streams_binaries () {
+  debug ${FUNCNAME[0]} "$@"
+
+  local OIFS=${IFS}
+  local dir=${OPT_TEMP_DIR}
+
+  IFS="," read -ra TARGETS <<< "${OPT_TARGETS}"
+
+  cd ${dir}
+
+  for a in ${TARGETS[@]}; do
+    case ${a} in
+      linux) cp ${OPT_SOURCES}/streams/streams_unix_X64 . ;;
+      windows) cp ${OPT_SOURCES}/streams/streams_windows_X64.exe . ;;
+      macos) cp ${OPT_SOURCES}/streams/streams_macos_X64 . ;;
+    esac
+  done
+
+  IFS=${OIFS}
+}
+
+
 function fetch_dependencies () {
   debug ${FUNCNAME[0]} "$@"
 
@@ -210,7 +232,7 @@ function fetch_dependencies () {
     fetch_remote_streams_binaries
   else
     fetch_local_sources
-    fetch_remote_streams_binaries
+    fetch_local_streams_binaries
   fi
 }
 
