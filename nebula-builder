@@ -156,12 +156,12 @@ function fetch_remote_sources () {
 function fetch_local_sources () {
   debug ${FUNCNAME[0]} "$@"
 
-  #git clone ${OPT_SOURCES}/nebula ${OPT_BUILD_DIR}/nebula
-  tar -C ${OPT_SOURCES} -cf - nebula | tar -C ${OPT_BUILD_DIR} -xf -
+  git clone ${OPT_SOURCES}/nebula ${OPT_BUILD_DIR}/nebula
+  #tar -C ${OPT_SOURCES} -cf - nebula | tar -C ${OPT_BUILD_DIR} -xf -
 
-  #git clone ${OPT_SOURCES}/local-world ${OPT_BUILD_DIR}/nebula/app/world
-  tar -C ${OPT_SOURCES} -cf - local-world | tar -C ${OPT_BUILD_DIR}/nebula/app -xf -
-  mv ${OPT_BUILD_DIR}/nebula/app/local-world ${OPT_BUILD_DIR}/nebula/app/world
+  git clone ${OPT_SOURCES}/local-world ${OPT_BUILD_DIR}/nebula/app/world
+  #tar -C ${OPT_SOURCES} -cf - local-world | tar -C ${OPT_BUILD_DIR}/nebula/app -xf -
+  #mv ${OPT_BUILD_DIR}/nebula/app/local-world ${OPT_BUILD_DIR}/nebula/app/world
 }
 
 function fetch_remote_streams_sources () {
@@ -347,8 +347,8 @@ function build_releases () {
         ;;
       docker)
         make_directory "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app"
-        docker save -o "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_BASE_NAME}.tar" "${OPT_BASE_NAME}"
-        gzip -vf9 "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_BASE_NAME}.tar"
+        docker save -o "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_PRODUCT_NAME}.docker.tar" "${OPT_BASE_NAME}"
+        gzip -vf9 "${OPT_RELEASES}/${a}/${OPT_BASE_NAME}/${OPT_TAG}/app/${OPT_PRODUCT_NAME}.docker.tar"
         ;;
       *) warn "No targets found"; return 1;;
     esac
