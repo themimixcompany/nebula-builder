@@ -156,8 +156,12 @@ function fetch_remote_sources () {
 function fetch_local_sources () {
   debug ${FUNCNAME[0]} "$@"
 
-  git clone ${OPT_SOURCES}/nebula ${OPT_BUILD_DIR}/nebula
-  git clone ${OPT_SOURCES}/local-world ${OPT_BUILD_DIR}/nebula/app/world
+  #git clone ${OPT_SOURCES}/nebula ${OPT_BUILD_DIR}/nebula
+  tar -C ${OPT_SOURCES} -cf - nebula | tar -C ${OPT_BUILD_DIR} -xf -
+
+  #git clone ${OPT_SOURCES}/local-world ${OPT_BUILD_DIR}/nebula/app/world
+  tar -C ${OPT_SOURCES} -cf - local-world | tar -C ${OPT_BUILD_DIR}/nebula/app -xf -
+  mv ${OPT_BUILD_DIR}/nebula/app/local-world ${OPT_BUILD_DIR}/nebula/app/world
 }
 
 function fetch_remote_streams_sources () {
@@ -214,9 +218,9 @@ function fetch_local_streams_binaries () {
 
   for a in ${TARGETS[@]}; do
     case ${a} in
-      linux) cp -v ${OPT_SOURCES}/streams/streams_unix_X64 . ;;
-      windows) cp -v ${OPT_SOURCES}/streams/streams_windows_X64.exe . ;;
-      macos) cp -v ${OPT_SOURCES}/streams/streams_macos_X64 . ;;
+      linux) cp ${OPT_SOURCES}/streams/streams_unix_X64 . ;;
+      windows) cp ${OPT_SOURCES}/streams/streams_windows_X64.exe . ;;
+      macos) cp ${OPT_SOURCES}/streams/streams_macos_X64 . ;;
     esac
   done
 
