@@ -43,7 +43,7 @@ RUN npm install -g electron-builder
 
 # Install Lisp and friends
 RUN mkdir -p ~/bin ~/common-lisp
-RUN git clone https://github.com/fare/asdf ~/common-lisp/asdf
+RUN git clone https://gitlab.common-lisp.net/asdf/asdf.git ~/common-lisp/asdf
 RUN git clone https://github.com/ebzzry/marie ~/common-lisp/marie
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp
 RUN sbcl --noinform --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --eval '(let ((ql-util::*do-not-prompt* t)) (ql:add-to-init-file) (sb-ext:exit))'

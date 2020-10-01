@@ -218,9 +218,9 @@ function fetch_local_streams_binaries () {
 
   for a in ${TARGETS[@]}; do
     case ${a} in
-      linux) cp ${OPT_RELEASES}/streams/streams_unix_X64 . ;;
-      windows) cp ${OPT_RELEASES}/streams/streams_windows_X64.exe . ;;
-      macos) cp ${OPT_RELEASES}/streams/streams_macos_X64 . ;;
+      linux) cp -v ${OPT_RELEASES}/streams/streams_unix_X64 . ;;
+      windows) cp -v ${OPT_RELEASES}/streams/streams_windows_X64.exe . ;;
+      macos) cp -v ${OPT_RELEASES}/streams/streams_macos_X64 . ;;
     esac
   done
 
