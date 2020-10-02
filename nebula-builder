@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=1.0.0
+readonly VERSION=1.0.1
 
 OPT_HELP=
 OPT_DEBUG=
@@ -23,6 +23,9 @@ OPT_TEMP_DIR=
 OPT_STREAMS_LINUX=streams_unix_X64
 OPT_STREAMS_WINDOWS=streams_windows_X64.exe
 OPT_STREAMS_MACOS=streams_macos_X64
+
+OPT_LIBSSL=libssl-1_1-x64.dll
+OPT_LIBCRYPTO=libcrypto-1_1-x64.dll
 
 OPT_TARGETS=
 OPT_BUILD_DIR=
@@ -218,9 +221,17 @@ function fetch_local_streams_binaries () {
 
   for a in ${TARGETS[@]}; do
     case ${a} in
-      linux) cp -v ${OPT_RELEASES}/streams/streams_unix_X64 . ;;
-      windows) cp -v ${OPT_RELEASES}/streams/streams_windows_X64.exe . ;;
-      macos) cp -v ${OPT_RELEASES}/streams/streams_macos_X64 . ;;
+      linux)
+        cp -v ${OPT_RELEASES}/streams/${OPT_STREAMS_LINUX} .
+        ;;
+      windows)
+        cp -v ${OPT_RELEASES}/streams/${OPT_STREAMS_WINDOWS} .
+        cp -v ${OPT_RELEASES}/streams/${OPT_LIBSSL} .
+        cp -v ${OPT_RELEASES}/streams/${OPT_LIBCRYPTO} .
+        ;;
+      macos)
+        cp -v ${OPT_RELEASES}/streams/${OPT_STREAMS_MACOS} .
+        ;;
     esac
   done
 
@@ -275,7 +286,11 @@ function build_binaries () {
         ;;
       windows)
         npm install
+
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_WINDOWS} ${streams_dir}
+        cp -v ${OPT_TEMP_DIR}/${OPT_LIBSSL} ${streams_dir}
+        cp -v ${OPT_TEMP_DIR}/${OPT_LIBCRYPTO} ${streams_dir}
+
         chmod +x ${streams_dir}/${OPT_STREAMS_WINDOWS}
         package win32 icon.ico
         build --windows win32
