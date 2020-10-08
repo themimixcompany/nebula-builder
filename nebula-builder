@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=1.0.1
+readonly VERSION=1.0.2
 
 OPT_HELP=
 OPT_DEBUG=
@@ -254,7 +254,7 @@ function fetch_dependencies () {
 function package () {
   local platform=$1
   local icon=$2
-  electron-packager . --platform="${platform}" --out=out --icon=assets/icons/"${icon}" --prune=true
+  electron-packager . --platform="${platform}" --out=out --icon=assets/icons/"${icon}" --prune=true --electron-zip-dir "${OPT_SOURCES}/electron"
 }
 
 function build () {
@@ -286,11 +286,9 @@ function build_binaries () {
         ;;
       windows)
         npm install
-
         cp -v ${OPT_TEMP_DIR}/${OPT_STREAMS_WINDOWS} ${streams_dir}
         cp -v ${OPT_TEMP_DIR}/${OPT_LIBSSL} ${streams_dir}
         cp -v ${OPT_TEMP_DIR}/${OPT_LIBCRYPTO} ${streams_dir}
-
         chmod +x ${streams_dir}/${OPT_STREAMS_WINDOWS}
         package win32 icon.ico
         build --windows win32
