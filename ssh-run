@@ -11,7 +11,7 @@ OPT_HELP=
 OPT_DEBUG=
 OPT_VERBOSE=
 
-function error () {
+function error {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "error: ${@}" >&2
   else
@@ -21,7 +21,7 @@ function error () {
   exit 1
 }
 
-function warn () {
+function warn {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "warning: ${@}" >&2
   else
@@ -29,7 +29,7 @@ function warn () {
   fi
 }
 
-function debug () {
+function debug {
   if [[ -n "${OPT_DEBUG}" ]]; then
     echo '**'
     echo \${@}: ${@}
@@ -39,7 +39,7 @@ function debug () {
   fi
 }
 
-function parse_arguments () {
+function parse_arguments {
   debug ${FUNCNAME[0]} "$@"
 
   local opts=$(getopt -n "${SELF}" --options hdv --longoptions help,debug,verbose -- "$@")
@@ -59,7 +59,7 @@ function parse_arguments () {
   done
 }
 
-function process_arguments () {
+function process_arguments {
   debug ${FUNCNAME[0]} "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
@@ -69,7 +69,7 @@ function process_arguments () {
   fi
 }
 
-function display_usage () {
+function display_usage {
   debug ${FUNCNAME[0]} "$@"
 
   cat << EOF
@@ -83,13 +83,13 @@ EOF
   exit 0
 }
 
-function launch_agent () {
+function launch_agent {
   debug ${FUNCNAME[0]} "$@"
 
   ssh-agent bash -c "ssh-add /root/.ssh/id_rsa; $@"
 }
 
-function main () {
+function main {
   debug ${FUNCNAME[0]} "$@"
 
   parse_arguments "$@"

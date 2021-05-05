@@ -34,7 +34,7 @@ OPT_RELEASES=
 OPT_TOKEN=
 OPT_TAG=
 
-function error () {
+function error {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "error: ${@}" >&2
   else
@@ -44,7 +44,7 @@ function error () {
   exit 1
 }
 
-function warn () {
+function warn {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "warning: ${@}" >&2
   else
@@ -52,7 +52,7 @@ function warn () {
   fi
 }
 
-function debug () {
+function debug {
   if [[ -n "${OPT_DEBUG}" ]]; then
     echo '**'
     echo \${@}: ${@}
@@ -60,7 +60,7 @@ function debug () {
   fi
 }
 
-function parse_arguments () {
+function parse_arguments {
   debug ${FUNCNAME[0]} "$@"
 
   local opts=$(getopt -n "${SELF}" --options hdvt:b:s:r:o:T: --longoptions help,debug,verbose,targets:,build-dir:,sources:,releases:,token:,tag: -- "$@")
@@ -88,7 +88,7 @@ function parse_arguments () {
   done
 }
 
-function process_arguments () {
+function process_arguments {
   debug ${FUNCNAME[0]} "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
@@ -102,7 +102,7 @@ function process_arguments () {
   fi
 }
 
-function display_usage () {
+function display_usage {
   debug ${FUNCNAME[0]} "$@"
 
   cat << EOF
@@ -122,20 +122,20 @@ EOF
   exit 0
 }
 
-function make_directory () {
+function make_directory {
   debug ${FUNCNAME[0]} "$@"
 
   mkdir -p "$@"
 }
 
-function ensure_directories () {
+function ensure_directories {
   debug ${FUNCNAME[0]} "$@"
 
   make_directory "${OPT_BUILD_DIR}"
   make_directory "${OPT_RELEASES}"
 }
 
-function remove () {
+function remove {
   debug ${FUNCNAME[0]} "$@"
 
   if [[ -e "$@" ]]; then
@@ -143,20 +143,20 @@ function remove () {
   fi
 }
 
-function move () {
+function move {
   debug ${FUNCNAME[0]} "$@"
 
   [[ $# == 2 && -e "$1" ]] && mv "$1" "$2"
 }
 
-function fetch_remote_sources () {
+function fetch_remote_sources {
   debug ${FUNCNAME[0]} "$@"
 
   /opt/bin/ssh-run "git clone $OPT_ELECTRON $OPT_BUILD_DIR/nebula"
   /opt/bin/ssh-run "git clone $OPT_WORLD $OPT_BUILD_DIR/nebula/app/world"
 }
 
-function fetch_local_sources () {
+function fetch_local_sources {
   debug ${FUNCNAME[0]} "$@"
 
   git clone ${OPT_SOURCES}/nebula ${OPT_BUILD_DIR}/nebula
@@ -167,26 +167,26 @@ function fetch_local_sources () {
   #mv ${OPT_BUILD_DIR}/nebula/app/local-world ${OPT_BUILD_DIR}/nebula/app/world
 }
 
-function fetch_remote_streams_sources () {
+function fetch_remote_streams_sources {
   debug ${FUNCNAME[0]} "$@"
 
   /opt/bin/ssh-run "git clone $OPT_STREAMS /root/common-lisp/streams"
 }
 
-function build_streams () {
+function build_streams {
   debug ${FUNCNAME[0]} "$@"
 
   sbcl --eval '(ql:quickload :streams)' \
        --eval '(streams:build #P"/var/lib/build/nebula/app/streams/")'
 }
 
-function create_temp_dir () {
+function create_temp_dir {
   debug ${FUNCNAME[0]} "$@"
 
   OPT_TEMP_DIR=$(mktemp -d)
 }
 
-function fetch_remote_streams_binaries () {
+function fetch_remote_streams_binaries {
   debug ${FUNCNAME[0]} "$@"
 
   local OIFS=${IFS}
@@ -209,7 +209,7 @@ function fetch_remote_streams_binaries () {
   IFS=${OIFS}
 }
 
-function fetch_local_streams_binaries () {
+function fetch_local_streams_binaries {
   debug ${FUNCNAME[0]} "$@"
 
   local OIFS=${IFS}
@@ -239,7 +239,7 @@ function fetch_local_streams_binaries () {
 }
 
 
-function fetch_dependencies () {
+function fetch_dependencies {
   debug ${FUNCNAME[0]} "$@"
 
   if [[ "${OPT_SOURCES}" == "github" ]]; then
@@ -251,19 +251,19 @@ function fetch_dependencies () {
   fi
 }
 
-function package () {
+function package {
   local platform=$1
   local icon=$2
   electron-packager . --platform="${platform}" --out=out --icon=assets/icons/"${icon}" --prune=true --electron-zip-dir "${OPT_SOURCES}/electron"
 }
 
-function build () {
+function build {
   local flag=$1
   local platform=$2
   electron-builder "${flag}" --prepackaged "out/${OPT_PRODUCT_NAME}-${platform}-x64"
 }
 
-function build_binaries () {
+function build_binaries {
   debug ${FUNCNAME[0]} "$@"
 
   local OIFS=${IFS}
@@ -315,7 +315,7 @@ function build_binaries () {
   IFS=${OIFS}
 }
 
-function build_releases () {
+function build_releases {
   debug ${FUNCNAME[0]} "$@"
 
   local OIFS=${IFS}
@@ -370,7 +370,7 @@ function build_releases () {
   IFS=${OIFS}
 }
 
-function main () {
+function main {
   debug ${FUNCNAME[0]} "$@"
 
   parse_arguments "$@"
