@@ -13,6 +13,7 @@ RUN apt-get update
 RUN apt-get install -y software-properties-common build-essential
 RUN apt-get install -y curl sbcl cl-launch make git xz-utils wget sudo gcc g++ jq rsync zip
 RUN apt-get install -y libx11-xcb1 libgtk-3-0 libnss3 libxss1 libasound2 libssl1.1
+RUN apt-get install -y libxcb-dri3-0 libdrm2 libgbm1
 
 # Install Docker
 RUN apt-get install -y apt-transport-https ca-certificates curl software-properties-common
